@@ -108,6 +108,7 @@ export default function (param, svgArgs) {
       .call(df.axis(scaleTime, 'bottom'))
       .selectAll('text')
       .attr('fill', colors[param.theme].axitTextGray)
+      .attr('transform', `translate(0,4)`)
 
     // => 绘制网格
     let gridHNums = svgArgs.height > 450 ? 20 : 8 // 水平分割多少格
@@ -139,9 +140,9 @@ export default function (param, svgArgs) {
     let chartH1Unit = chartH1 / chartH1GridNums
     df.getSerialArr(chartH1GridNums)
       .forEach((d, i) => {
-        priceRange.push(param.priceMid - priceMaxDiff + i * priceUnit)
-        scalePriceHeight.push(i * chartH1Unit)
-        pricePercentRange.push((i - chartH1GridNums / 2) * pricePercentUnit)
+        priceRange = [...priceRange, param.priceMid - priceMaxDiff + i * priceUnit]
+        scalePriceHeight = [...scalePriceHeight, i * chartH1Unit]
+        pricePercentRange = [...pricePercentRange, (i - chartH1GridNums / 2) * pricePercentUnit]
       })
     // 反转数组
     scalePriceHeight.reverse()
@@ -154,6 +155,9 @@ export default function (param, svgArgs) {
       .attr('fill', (d, i) => {
         return i !== chartH1GridNums / 2 ? (i < chartH1GridNums / 2 ? colors[param.theme].axisTextGreen : colors[param.theme].axisTextRed) : colors[param.theme].axitTextGray
       })
+      .attr('transform', (d, i) => {
+        return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
+      })
 
     let scalePricePercent = df.ordinal(pricePercentRange, scalePriceHeight)
     PercentAxisG.attr('class', 'y axis')
@@ -163,15 +167,19 @@ export default function (param, svgArgs) {
       .attr('fill', (d, i) => {
         return i !== chartH1GridNums / 2 ? (i < chartH1GridNums / 2 ? colors[param.theme].axisTextGreen : colors[param.theme].axisTextRed) : colors[param.theme].axitTextGray
       })
+      .attr('transform', (d, i) => {
+        return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
+      })
 
     let vbRange = []
     let scaleVBHeight = []
     let vbUnit = chartH2 / chartH2GridNums
     df.getSerialArr(chartH2GridNums)
       .forEach((d, i) => {
-        vbRange.push(volumeMax / chartH2GridNums * i)
-        scaleVBHeight.push(i * vbUnit)
+        vbRange = i === 0 ? [...vbRange, ''] : [...vbRange, volumeMax / chartH2GridNums * i]
+        scaleVBHeight = [...scaleVBHeight, i * vbUnit]
       })
+    // 反转数组
     scaleVBHeight.reverse()
     let scaleVB = df.ordinal(vbRange, scaleVBHeight)
     vbAxisG.attr('class', 'y axis')
@@ -184,7 +192,17 @@ export default function (param, svgArgs) {
     let scaleX = df.linear(xTime, xWidth)
     let scaleY1 = df.linear([priceMin - priceMaxDiff, priceMax + priceMaxDiff], [chartH1, 0])
     let scaleY2 = df.linear([volumeMin, volumeMax], [0, chartH2])
-
+    svg.append('circle')
+      .attr('class', 'lamp')
+      .attr('cx', 100)
+      .attr('cy', 40)
+      .attr('r', 5)
+      .attr('fill', 'red')
+    svg.append('circle')
+      .attr('cx', 100)
+      .attr('cy', 40)
+      .attr('r', 2.5)
+      .attr('fill', 'red')
     /**
      * 行情区
      */

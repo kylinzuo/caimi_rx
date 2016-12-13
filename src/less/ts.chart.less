@@ -7,18 +7,28 @@
   letter-spacing:1px;
   font-family: "PingFangSC-Regular";
   font-size: 12px;
-  -webkit-transform: translate(0px,4px);
-  transform: translate(0px,4px);
 }
 .tsChartContainer .y text{
   stroke: none;
   letter-spacing:1px;
   font-family: "PingFangSC-Regular";
   font-size: 12px;
-  -webkit-transform: translate(0px,0px);
-  transform: translate(0px,0px);
 }
-.tsChartContainer .y .tick:nth-last-child(2) text{
-  -webkit-transform: translate(0px, 6px);
-  transform: translate(0px, 6px);
+.lamp {
+  animation: breathing 1.5s ease-in-out infinite
+}
+@keyframes breathing
+{
+  0% {
+    opacity: 0.2;
+    r: 5;
+  }
+  50% {
+    opacity: 0.3;
+    r: 8;
+  }
+  100% {
+    opacity: 0.2;
+    r: 5;
+  }
 }
