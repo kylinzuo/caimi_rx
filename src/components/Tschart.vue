@@ -19,9 +19,13 @@ export default {
     let param = {}
     param.id = 'tsChartContainer' // 画布容器
     param.theme = 0 // 颜色主题
-    getTimeseriesService('000001.SZ', 240, data => {
+    // 000001.SS 000001.SZ 000625.SZ
+    getTimeseriesService('000001.SZ', 2239, data => {
       param.data = data // 绘图数据
-      param.priceMid = 9.64 // 上一个交易日的收盘价
+      param.period = 1
+      // param.priceMid = 15.74 // 上一个交易日的收盘价
+      param.priceMid = 9.5 // 上一个交易日的收盘价
+      // param.priceMid = 3100 // 上一个交易日的收盘价
       this.tsChart = new RenderTsChart(param)
     })
   }
@@ -33,6 +37,7 @@ export default {
 .tsChart {
   width: 100%;
   height: 90%;
+  /*height: 406px;*/
   border: 1px solid #ccc;
   background-color: #fff;
 }

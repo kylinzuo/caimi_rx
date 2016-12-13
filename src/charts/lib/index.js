@@ -24,6 +24,9 @@ export let zh = d3.locale({
   shortMonths: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
 })
 
+// 每日交易时间
+export let tradeTime = ['09:30', '10:00', '10:30', '11:00', '11:30/13:00', '13:30', '14:00', '14:30', '15:00']
+
 // 时间比例尺
 export function timeScale (dom, ran) {
   return d3.time.scale()
@@ -43,6 +46,36 @@ export function ordinal (dom, ran) {
   return d3.scale.ordinal()
     .domain(dom)
     .range(ran)
+}
+
+// 坐标轴
+export function axis (scaleVal, direction, type) {
+  return d3.svg.axis()
+    .scale(scaleVal)
+    // .ticks(n)
+    .tickSize(0, 0)
+    .orient(direction)
+    .tickFormat(function (d) {
+      if (type === '%') {
+        return `${formatVal(d)}%`
+      } else {
+        return d === '' || isNaN(Number(d)) === true ? `${d}` : formatVal(d)
+      }
+    })
+}
+
+export function formatVal (val) {
+  if (typeof (val) === 'number') {
+    if (val < 100) {
+      return val.toFixed(2)
+    } else if (val < 10000) {
+      return val.toFixed(1)
+    } else {
+      return val > 10000 ? (val > 100000000 ? `${(val / 100000000).toFixed(1)}亿` : `${(val / 10000).toFixed(0)}万`) : val.toFixed(2)
+    }
+  } else {
+    return val
+  }
 }
 
 // 获取最大值
@@ -138,7 +171,7 @@ export function createSVG (svgArgs) {
 }
 
 // 生成一个连续数组
-export function _getSerialArr (nums) {
+export function getSerialArr (nums) {
   let arr = []
   for (let i = 0; i <= nums; i++) {
     arr.push(i)
@@ -155,28 +188,40 @@ export function _getSerialArr (nums) {
  * gridGargs => 网格线参数 width, height, top, bottom, left, right, stroke
  */
 export function drawGrid (gridG, svgArgs, hNums, vNums, gridGargs) {
-  let hArr = _getSerialArr(hNums)
-  let vArr = _getSerialArr(vNums)
+  let hArr = getSerialArr(hNums)
+  let vArr = getSerialArr(vNums)
   let w = gridGargs.width
   let h = gridGargs.height
-  // 网格水平分隔线
-  gridG.selectAll('.horizontalLines')
+
+  let update1 = gridG.selectAll('.horizontalLines')
     .data(hArr)
-    .enter()
-    .append('path')
-    .attr('class', 'horizontalLines') // horizontalLines
+  let enter1 = update1.enter()
+  let exit1 = update1.exit()
+  // 网格水平分隔线
+  update1.attr('class', 'horizontalLines')
+    .attr('stroke', gridGargs.stroke)
+    .attr('d', function (d, i) {
+      return `M0,${(i * (h / hNums))}L${w},${(i * (h / hNums))}`
+    })
+  enter1.append('path')
+    .attr('class', 'horizontalLines')
     .attr('stroke', gridGargs.stroke)
     .attr('stroke-Width', 1)
     .attr('fill', 'none')
     .attr('d', function (d, i) {
       return `M0,${(i * (h / hNums))}L${w},${(i * (h / hNums))}`
     })
+  exit1.remove()
   // 网格垂直分隔线
-  gridG.append('g')
-    .selectAll('.verticalLines')
+  let update2 = gridG.selectAll('.verticalLines')
     .data(vArr)
-    .enter()
-    .append('path')
+  let enter2 = update2.enter()
+  let exit2 = update2.exit()
+  update2.attr('stroke', gridGargs.stroke)
+    .attr('d', function (d, i) {
+      return `M${(i * (w / vNums))},0L${(i * (w / vNums))},${h}`
+    })
+  enter2.append('path')
     .attr('class', 'verticalLines')
     .attr('stroke', gridGargs.stroke)
     .attr('stroke-Width', 1)
@@ -184,6 +229,7 @@ export function drawGrid (gridG, svgArgs, hNums, vNums, gridGargs) {
     .attr('d', function (d, i) {
       return `M${(i * (w / vNums))},0L${(i * (w / vNums))},${h}`
     })
+  exit2.remove()
 }
 
 /**
@@ -244,7 +290,7 @@ export function drawPolyline (G, polylineArgs, data, line) {
  * rectArgs => 参数
  * data => 绘图数据
  */
-export function drawHistogram (G, rectArgs, data, scaleX, scaleY, h, red, green) {
+export function drawHistogram (G, rectArgs, data, type, scaleX, scaleY, h, red, green) {
   let update = G.selectAll(`.${rectArgs.class}`)
     .data(data)
   let enter = update.enter()
@@ -257,10 +303,10 @@ export function drawHistogram (G, rectArgs, data, scaleX, scaleY, h, red, green)
       return scaleX((new Date(d.time)).getTime())
     })
     .attr('y', (d, i) => {
-      return h - scaleY(d.volume)
+      return h - scaleY(d[type])
     })
     .attr('height', (d, i) => {
-      return scaleY(d.volume)
+      return scaleY(d[type])
     })
     .attr('fill', (d, i) => {
       return d.close - d.open >= 0 ? red : green

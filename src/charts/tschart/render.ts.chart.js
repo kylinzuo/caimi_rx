@@ -21,8 +21,8 @@ export default function (param, svgArgs) {
   // df.log(svgArgs)
   // 在绘图容器中添加 SVG
   let svg = df.createSVG(svgArgs)
-  df.log('param')
-  df.log(param)
+  // df.log('param')
+  // df.log(param)
   // 绘制背景矩形
   let bgG = svg.append('g')
   let bgGRectArgs = {
@@ -48,25 +48,21 @@ export default function (param, svgArgs) {
     .attr('class', 'svgG')
     .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
 
-  // 绘制网格
+  // 网格容器
   let gridG = svgG.append('g')
     .attr('class', 'gridG')
-  let gridGargs = {
-    width: chartW,
-    height: chartH,
-    top: th,
-    bottom: bh,
-    left: lw,
-    right: rw,
-    stroke: colors[svgArgs.theme].gray
-  }
-  df.drawGrid(gridG, svgArgs, 20, 11, gridGargs)
+
+  // 坐标轴刻度容器
+  let timeAxisG = svg.append('g')
+  let priceAxisG = svg.append('g')
+  let PercentAxisG = svg.append('g') // 涨跌比率坐标轴容器
+  let vbAxisG = svg.append('g') // 成交量与成交额坐标轴容器
 
   /**
    * socket 推送数据更新视图
    */
   this.render = function (svg, store) {
-    df.log(store.data)
+    // df.log(store.data)
     let timeSet = new Set()
     // let lastDay = null
     store.data.forEach((d, i) => {
@@ -88,23 +84,107 @@ export default function (param, svgArgs) {
       let endVal = (i + 1) * chartW / time.length
       xWidth = [...xWidth, ...[startVal, startVal + (endVal - startVal) / 2, startVal + (endVal - startVal) / 2, endVal]]
     })
-    df.log(xTime)
-    df.log(xWidth)
+    // 获取价格、成交量、成交额最大最小值
     let priceMin = df.min(store.data, 'close')
     let priceMax = df.max(store.data, 'close')
     let volumeMin = df.min(store.data, 'volume')
     let volumeMax = df.max(store.data, 'volume')
     // let balanceMin = df.min(store.data, 'balance')
-    // let balanceMin = df.max(store.data, 'balance')
+    // let balanceMax = df.max(store.data, 'balance')
     let priceMaxDiff = Math.max(Math.abs(priceMin - param.priceMid), Math.abs(priceMax - param.priceMid))
-    let chartH1 = chartH * 11 / 20
-    let chartH2 = chartH - chartH1
-    df.log(volumeMin + '==>' + volumeMax)
 
+    // => 横坐标轴刻度
+    let scaleTimeArr = time.length > 1 ? [...time, ''] : df.tradeTime
+    let scaleWidth = []
+    let unitW = chartW / (scaleTimeArr.length - 1)
+    scaleTimeArr.forEach((d, i) => {
+      scaleWidth.push(i * unitW)
+    })
+
+    let scaleTime = df.ordinal(scaleTimeArr, scaleWidth)
+    // 底部时间坐标轴
+    timeAxisG.attr('class', 'x axis')
+      .attr('transform', `translate(${lw},${chartH})`)
+      .call(df.axis(scaleTime, 'bottom'))
+      .selectAll('text')
+      .attr('fill', colors[param.theme].axitTextGray)
+
+    // => 绘制网格
+    let gridHNums = svgArgs.height > 450 ? 20 : 8 // 水平分割多少格
+    let gridVNums = scaleTimeArr.length - 1 // 垂直分割多少格
+    let gridGargs = {
+      width: chartW,
+      height: chartH,
+      top: th,
+      bottom: bh,
+      left: lw,
+      right: rw,
+      stroke: colors[svgArgs.theme].gray
+    }
+    df.drawGrid(gridG, svgArgs, gridHNums, gridVNums, gridGargs)
+
+    // 每格网格的高度
+    let unitGridH = chartH / gridHNums
+    let chartH1GridNums = gridHNums / 2 // => 价格曲线垂直方向所占网格数量
+    let chartH2GridNums = gridHNums / 2 - 1 // => 分时量&分时额垂直方向所占网格数量
+    let chartH1 = unitGridH * chartH1GridNums
+    let chartH2 = unitGridH * chartH2GridNums
+
+    // 生成纵坐标轴刻度
+    let priceRange = []
+    let pricePercentRange = []
+    let scalePriceHeight = []
+    let priceUnit = (2 * priceMaxDiff) / chartH1GridNums
+    let pricePercentUnit = (param.priceMid - priceMaxDiff) / param.priceMid
+    let chartH1Unit = chartH1 / chartH1GridNums
+    df.getSerialArr(chartH1GridNums)
+      .forEach((d, i) => {
+        priceRange.push(param.priceMid - priceMaxDiff + i * priceUnit)
+        scalePriceHeight.push(i * chartH1Unit)
+        pricePercentRange.push((i - chartH1GridNums / 2) * pricePercentUnit)
+      })
+    // 反转数组
+    scalePriceHeight.reverse()
+    // => 绘制纵坐标刻度
+    let scalePrice = df.ordinal(priceRange, scalePriceHeight)
+    priceAxisG.attr('class', 'y axis')
+      .attr('transform', `translate(${lw},${th})`)
+      .call(df.axis(scalePrice, 'left'))
+      .selectAll('text')
+      .attr('fill', (d, i) => {
+        return i !== chartH1GridNums / 2 ? (i < chartH1GridNums / 2 ? colors[param.theme].axisTextGreen : colors[param.theme].axisTextRed) : colors[param.theme].axitTextGray
+      })
+
+    let scalePricePercent = df.ordinal(pricePercentRange, scalePriceHeight)
+    PercentAxisG.attr('class', 'y axis')
+      .attr('transform', `translate(${lw + chartW},${th})`)
+      .call(df.axis(scalePricePercent, 'right', '%'))
+      .selectAll('text')
+      .attr('fill', (d, i) => {
+        return i !== chartH1GridNums / 2 ? (i < chartH1GridNums / 2 ? colors[param.theme].axisTextGreen : colors[param.theme].axisTextRed) : colors[param.theme].axitTextGray
+      })
+
+    let vbRange = []
+    let scaleVBHeight = []
+    let vbUnit = chartH2 / chartH2GridNums
+    df.getSerialArr(chartH2GridNums)
+      .forEach((d, i) => {
+        vbRange.push(volumeMax / chartH2GridNums * i)
+        scaleVBHeight.push(i * vbUnit)
+      })
+    scaleVBHeight.reverse()
+    let scaleVB = df.ordinal(vbRange, scaleVBHeight)
+    vbAxisG.attr('class', 'y axis')
+      .attr('transform', `translate(${lw},${th + chartH1 + unitGridH})`)
+      .call(df.axis(scaleVB, 'left'))
+      .selectAll('text')
+      .attr('fill', colors[param.theme].axitTextGray)
+
+    // => 横纵坐标比例尺
     let scaleX = df.linear(xTime, xWidth)
-    let scaleY1 = df.linear([param.priceMid - priceMaxDiff, param.priceMid + priceMaxDiff], [chartH1, 0])
+    let scaleY1 = df.linear([priceMin - priceMaxDiff, priceMax + priceMaxDiff], [chartH1, 0])
     let scaleY2 = df.linear([volumeMin, volumeMax], [0, chartH2])
-    df.log(scaleY2(100))
+
     /**
      * 行情区
      */
@@ -132,13 +212,14 @@ export default function (param, svgArgs) {
     df.drawPolyline(tsChartG, polylineArgs, [store.data], tsLine)
     // 指标一区
     let tsChartVolumeG = svg.append('g')
-      .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th + chartH1})`)
-    df.log(tsChartVolumeG)
+      .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th + unitGridH * (chartH1GridNums + 1)})`)
     let rectArgs = {
       class: 'volumeR',
       'width': 1
     }
-    df.drawHistogram(tsChartVolumeG, rectArgs, store.data, scaleX, scaleY2, chartH2, colors[param.theme].fillRed, colors[param.theme].fillGreen)
+    // => 分时量 || 分时额类型
+    let rectType = 'volume'
+    df.drawHistogram(tsChartVolumeG, rectArgs, store.data, rectType, scaleX, scaleY2, chartH2, colors[param.theme].fillRed, colors[param.theme].fillGreen)
   }
   // 初始化视图
   this.render(svg, store)
