@@ -25,7 +25,12 @@ export let zh = d3.locale({
 })
 
 // 每日交易时间
-export let tradeTime = ['09:30', '10:00', '10:30', '11:00', '11:30/13:00', '13:30', '14:00', '14:30', '15:00']
+export let tradeTime = ['09:30', '10:00', '10:30', '11:00', '11:30', '13:30', '14:00', '14:30', '15:00']
+
+// 返回距 1970 年 1 月 1 日之间的毫秒数
+export function getMsec (time) {
+  return (new Date(time)).getTime()
+}
 
 // 时间比例尺
 export function timeScale (dom, ran) {
@@ -66,12 +71,12 @@ export function axis (scaleVal, direction, type) {
 
 export function formatVal (val) {
   if (typeof (val) === 'number') {
-    if (val < 100) {
+    if (val < 1000) {
       return val.toFixed(2)
-    } else if (val < 10000) {
-      return val.toFixed(1)
+    } else if (val < 100000) {
+      return Math.floor(val)
     } else {
-      return val > 10000 ? (val > 100000000 ? `${(val / 100000000).toFixed(1)}亿` : `${(val / 10000).toFixed(0)}万`) : val.toFixed(2)
+      return val > 100000000 ? `${(val / 100000000).toFixed(1)}亿` : `${(val / 10000).toFixed(0)}万`
     }
   } else {
     return val
@@ -164,8 +169,6 @@ export function createSVG (svgArgs) {
   let svg = d3.select(`#${svgArgs.id}`).append('svg')
     .attr('width', svgArgs.width + svgArgs.margin.left + svgArgs.margin.right)
     .attr('height', svgArgs.height + svgArgs.margin.top + svgArgs.margin.bottom)
-    // .append('g')
-    // .attr('transform', `translate(${svgArgs.margin.left},${svgArgs.margin.top})`)
 
   return svg
 }
@@ -312,4 +315,16 @@ export function drawHistogram (G, rectArgs, data, type, scaleX, scaleY, h, red, 
       return d.close - d.open >= 0 ? red : green
     })
   exit.remove()
+}
+
+/**
+ * 绘制呼吸灯
+ * G => 容器
+ * lampArgs => 参数
+ */
+export function drawBreathLamp (G, lampArgs) {
+  let breathLamp = G.append('circle')
+    .attr(lampArgs)
+
+  return breathLamp
 }

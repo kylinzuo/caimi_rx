@@ -48,15 +48,43 @@ export default function (param, svgArgs) {
     .attr('class', 'svgG')
     .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
 
+  // 添加最新价点位呼吸灯
+  let lampG = svg.append('g')
+    .attr('class', 'lampG')
+    .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
+  let latestLamp = df.drawBreathLamp(lampG, {
+    class: 'lamp',
+    cx: -100,
+    cy: -100,
+    r: 5
+  })
+  let latestLampwick = df.drawBreathLamp(lampG, {
+    class: 'lampwick',
+    cx: -100,
+    cy: -100,
+    r: 2.5
+  })
+
   // 网格容器
   let gridG = svgG.append('g')
     .attr('class', 'gridG')
+
+  // 行情区容器 => 面积曲线用于填充线性渐变
+  let tsChartG = svgG.append('g')
+
+  // 指标一区容器
+  let tsChartVolumeG = svgG.append('g')
 
   // 坐标轴刻度容器
   let timeAxisG = svg.append('g')
   let priceAxisG = svg.append('g')
   let PercentAxisG = svg.append('g') // 涨跌比率坐标轴容器
   let vbAxisG = svg.append('g') // 成交量与成交额坐标轴容器
+
+  // => 添加线性渐变
+  let startColor = `rgba(20,107,206,0.3)`
+  let endColor = `rgba(255,255,255,0.3)`
+  let tsLinearGradient = df.linearGradient(svg, 'tsLinearColor', startColor, endColor)
 
   /**
    * socket 推送数据更新视图
@@ -192,27 +220,27 @@ export default function (param, svgArgs) {
     let scaleX = df.linear(xTime, xWidth)
     let scaleY1 = df.linear([priceMin - priceMaxDiff, priceMax + priceMaxDiff], [chartH1, 0])
     let scaleY2 = df.linear([volumeMin, volumeMax], [0, chartH2])
-    svg.append('circle')
-      .attr('class', 'lamp')
-      .attr('cx', 100)
-      .attr('cy', 40)
-      .attr('r', 5)
+
+    // => 更新呼吸灯位置与颜色
+    latestLamp
+      .attr('cx', () => {
+        return scaleX(df.getMsec(param.data[param.data.length - 1].time))
+      })
+      .attr('cy', () => {
+        return scaleY1(param.data[param.data.length - 1].close)
+      })
       .attr('fill', 'red')
-    svg.append('circle')
-      .attr('cx', 100)
-      .attr('cy', 40)
-      .attr('r', 2.5)
+    latestLampwick
+      .attr('cx', () => {
+        return scaleX(df.getMsec(param.data[param.data.length - 1].time))
+      })
+      .attr('cy', () => {
+        return scaleY1(param.data[param.data.length - 1].close)
+      })
       .attr('fill', 'red')
     /**
-     * 行情区
+     * 行情区价格、均线走势 + 成交量、成交额柱状图
      */
-    // => 添加线性渐变
-    let startColor = `rgba(20,107,206,0.3)`
-    let endColor = `rgba(255,255,255,0.3)`
-    let tsLinearGradient = df.linearGradient(svg, 'tsLinearColor', startColor, endColor)
-    // => 面积曲线用于填充线性渐变
-    let tsChartG = svg.append('g')
-      .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
     let tsArea = df.area(scaleX, scaleY1, 'time', 'close', chartH1)
     let areaArgs = {
       class: 'tsArea',
@@ -229,8 +257,7 @@ export default function (param, svgArgs) {
     }
     df.drawPolyline(tsChartG, polylineArgs, [store.data], tsLine)
     // 指标一区
-    let tsChartVolumeG = svg.append('g')
-      .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th + unitGridH * (chartH1GridNums + 1)})`)
+    tsChartVolumeG.attr('transform', `translate(0,${unitGridH * (chartH1GridNums + 1)})`)
     let rectArgs = {
       class: 'volumeR',
       'width': 1
