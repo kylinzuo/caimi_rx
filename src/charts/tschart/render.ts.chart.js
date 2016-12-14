@@ -1,6 +1,7 @@
 /**
  * 分时图 by zuozhengqi 2016/12/08
  */
+import d3 from 'd3'
 import * as df from '../lib/index'
 import { colors } from '../lib/colors'
 
@@ -25,6 +26,7 @@ export default function (param, svgArgs) {
   // df.log(param)
   // 绘制背景矩形
   let bgG = svg.append('g')
+    .attr('class', 'bgG')
   let bgGRectArgs = {
     'class': 'bgG',
     'x': 0,
@@ -75,16 +77,116 @@ export default function (param, svgArgs) {
   // 指标一区容器
   let tsChartVolumeG = svgG.append('g')
 
+  // => 十字光标
+  let cursorG = svgG.append('g')
+    .attr('class', 'cursorG')
+    .attr('opacity', 0)
+  let cursorX = df.drawLine(cursorG, {
+    class: 'cursorX',
+    x1: 0,
+    x2: chartW,
+    stroke: colors[param.theme].cursorBlue,
+    'stroke-width': 1,
+    'stroke-dasharray': '3, 3'
+  })
+  let cursorY = df.drawLine(cursorG, {
+    class: 'cursorY',
+    y1: th,
+    y2: th + chartH,
+    stroke: colors[param.theme].cursorBlue,
+    'stroke-width': 1,
+    'stroke-dasharray': '3, 3'
+  })
+
   // 坐标轴刻度容器
   let timeAxisG = svg.append('g')
   let priceAxisG = svg.append('g')
   let PercentAxisG = svg.append('g') // 涨跌比率坐标轴容器
   let vbAxisG = svg.append('g') // 成交量与成交额坐标轴容器
 
+  // => 光标指示
+  let timeTipG = svg.append('g')
+    .attr('class', 'timeTipG')
+    .attr('opacity', 0)
+  df.drawRect(timeTipG, {
+    x: 0,
+    y: 0,
+    width: 76,
+    height: 20,
+    stroke: colors[param.theme].tipBorderBlue,
+    'stroke-width': 1,
+    fill: colors[param.theme].tipBlue
+  })
+  let timeTipText = df.drawText(timeTipG, {
+    'font-family': 'PingFangSC-Regular',
+    'font-size': 12,
+    dx: 5,
+    dy: 14,
+    stroke: 'none',
+    fill: colors[param.theme].tipTextBlue
+  })
+
+  let priceTipG = svg.append('g')
+    .attr('class', 'priceTipG')
+    .attr('opacity', 0)
+  df.drawRect(priceTipG, {
+    x: 0,
+    y: 0,
+    width: lw,
+    height: 18,
+    stroke: colors[param.theme].tipBorderBlue,
+    'stroke-width': 1,
+    fill: colors[param.theme].tipBlue
+  })
+  let priceTipText = df.drawText(priceTipG, {
+    'font-family': 'PingFangSC-Regular',
+    'font-size': 12,
+    dx: 5,
+    dy: 14,
+    stroke: 'none',
+    fill: colors[param.theme].tipTextBlue
+  })
+
+  let percentTipG = svg.append('g')
+    .attr('class', 'percentTipG')
+    .attr('opacity', 0)
+  df.drawRect(percentTipG, {
+    x: 0,
+    y: 0,
+    width: rw,
+    height: 18,
+    stroke: colors[param.theme].tipBorderBlue,
+    'stroke-width': 1,
+    fill: colors[param.theme].tipBlue
+  })
+  let percentTipText = df.drawText(percentTipG, {
+    'font-family': 'PingFangSC-Regular',
+    'font-size': 12,
+    dx: 5,
+    dy: 14,
+    stroke: 'none',
+    fill: colors[param.theme].tipTextBlue
+  })
+
   // => 添加线性渐变
   let startColor = `rgba(20,107,206,0.3)`
   let endColor = `rgba(255,255,255,0.3)`
   let tsLinearGradient = df.linearGradient(svg, 'tsLinearColor', startColor, endColor)
+
+  // 事件触发容器
+  let eventG = svg.append('g')
+    .attr('class', 'eventG')
+    .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
+  let eventGRectArgs = {
+    'class': 'eventGRect',
+    'x': 0,
+    'y': 0,
+    'width': chartW,
+    'height': chartH,
+    'fill': 'none',
+    'pointer-events': 'all'
+  }
+  let eventGRect = df.drawRect(eventG, eventGRectArgs)
 
   /**
    * socket 推送数据更新视图
@@ -164,13 +266,13 @@ export default function (param, svgArgs) {
     let pricePercentRange = []
     let scalePriceHeight = []
     let priceUnit = (2 * priceMaxDiff) / chartH1GridNums
-    let pricePercentUnit = (param.priceMid - priceMaxDiff) / param.priceMid
+    let pricePercentUnit = priceMaxDiff / param.priceMid / chartH1GridNums * 2
     let chartH1Unit = chartH1 / chartH1GridNums
     df.getSerialArr(chartH1GridNums)
       .forEach((d, i) => {
         priceRange = [...priceRange, param.priceMid - priceMaxDiff + i * priceUnit]
         scalePriceHeight = [...scalePriceHeight, i * chartH1Unit]
-        pricePercentRange = [...pricePercentRange, (i - chartH1GridNums / 2) * pricePercentUnit]
+        pricePercentRange = [...pricePercentRange, (i - chartH1GridNums / 2) * pricePercentUnit * 100]
       })
     // 反转数组
     scalePriceHeight.reverse()
@@ -218,8 +320,9 @@ export default function (param, svgArgs) {
 
     // => 横纵坐标比例尺
     let scaleX = df.linear(xTime, xWidth)
-    let scaleY1 = df.linear([priceMin - priceMaxDiff, priceMax + priceMaxDiff], [chartH1, 0])
+    let scaleY1 = df.linear([param.priceMid - priceMaxDiff, param.priceMid + priceMaxDiff], [chartH1, 0])
     let scaleY2 = df.linear([volumeMin, volumeMax], [0, chartH2])
+    let scaleYPercent = df.linear([-(priceMaxDiff / param.priceMid * 100), priceMaxDiff / param.priceMid * 100], [chartH1, 0])
 
     // => 更新呼吸灯位置与颜色
     latestLamp
@@ -265,7 +368,120 @@ export default function (param, svgArgs) {
     // => 分时量 || 分时额类型
     let rectType = 'volume'
     df.drawHistogram(tsChartVolumeG, rectArgs, store.data, rectType, scaleX, scaleY2, chartH2, colors[param.theme].fillRed, colors[param.theme].fillGreen)
+
+    /**
+     * 定义鼠标事件
+     */
+    eventGRect
+      .on('mouseover', () => {
+        showCousor()
+      })
+      .on('mousemove', function () {
+        let x = d3.mouse(this)[0]
+        let y = d3.mouse(this)[1]
+        mousemove({
+          x: x,
+          y: y,
+          scaleX: scaleX,
+          chartH: chartH,
+          chartH1: chartH1,
+          chartH2: chartH2,
+          scaleY1: scaleY1,
+          scaleY2: scaleY2,
+          scaleYPercent: scaleYPercent
+        })
+      })
+      .on('mouseout', () => {
+        hideCorsor()
+      })
+      .on('click', function () {
+        // 阻止默认事件
+        d3.event.preventDefault()
+        let x = d3.mouse(this)[0]
+        let y = d3.mouse(this)[1]
+        mousemove({
+          x: x,
+          y: y,
+          scaleX: scaleX,
+          chartH: chartH,
+          chartH1: chartH1,
+          chartH2: chartH2,
+          scaleY1: scaleY1,
+          scaleY2: scaleY2,
+          scaleYPercent: scaleYPercent
+        })
+      })
+      .on('dblclick', () => {
+        // 阻止默认事件
+        d3.event.preventDefault()
+        df.log('dblclick')
+      })
   }
   // 初始化视图
   this.render(svg, store)
+
+  // 显示光标
+  function showCousor () {
+    cursorG.attr('opacity', 1)
+    timeTipG.attr('opacity', 1)
+    priceTipG.attr('opacity', 1)
+    percentTipG.attr('opacity', 1)
+  }
+  // 隐藏光标
+  function hideCorsor () {
+    cursorG.attr('opacity', 0)
+    timeTipG.attr('opacity', 0)
+    priceTipG.attr('opacity', 0)
+    percentTipG.attr('opacity', 0)
+  }
+
+  // 光标移动时更新光标指示数据
+  function mousemove ({x, y, scaleX, scaleY1, scaleY2, scaleYPercent, chartH, chartH1, chartH2}) {
+    if (+cursorG.attr('opacity') !== 1) {
+      return
+    }
+    // 更新十字光标位置
+    cursorX.attr('y1', y)
+      .attr('y2', y)
+    cursorY.attr('x1', x)
+      .attr('x2', x)
+    // 更新时间指示框位置 & 指示时间
+    let tipTime = df.getDate(scaleX.invert(x))
+    timeTipG.attr('transform', `translate(${x + lw - 38},${th + chartH + 1})`)
+    timeTipText.text(df.formatTime('%m/%d %H:%M')(tipTime))
+
+    // 水平光标线在行情区与第一指标区之间时隐藏
+    let priceTipVal = 0
+    let percentTipVal = 0
+    if (y < chartH1) {
+      // df.log(y)
+      cursorX.attr('opacity', 1)
+      priceTipG.attr('opacity', 1)
+      percentTipG.attr('opacity', 1)
+      priceTipVal = scaleY1.invert(y)
+      percentTipVal = df.formatVal(scaleYPercent.invert(y))
+    } else if (y > chartH - chartH2) {
+      // df.log(chartH - y)
+      cursorX.attr('opacity', 1)
+      priceTipG.attr('opacity', 1)
+      percentTipG.attr('opacity', 0)
+      priceTipVal = scaleY2.invert(chartH - y)
+      percentTipVal = 0
+    } else {
+      cursorX.attr('opacity', 0)
+      priceTipG.attr('opacity', 0)
+      percentTipG.attr('opacity', 0)
+      priceTipVal = 0
+      percentTipVal = 0
+    }
+    priceTipVal = df.formatVal(priceTipVal)
+    priceTipG.attr('transform', `translate(${0},${y > 10 ? th + y - 10 : th})`)
+    priceTipText.text(priceTipVal)
+      .attr('dx', () => {
+        return lw - priceTipVal.toString().length * 8
+      })
+
+    percentTipG.attr('transform', `translate(${lw + chartW},${y > 10 ? th + y - 10 : th})`)
+    percentTipText.text(percentTipVal)
+  }
 }

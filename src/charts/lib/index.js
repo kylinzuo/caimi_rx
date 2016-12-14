@@ -2,7 +2,7 @@
  * 绘图工具 by zuozhengqi 2016/12/08
  */
 import d3 from 'd3'
-
+// import {numAdd, numSub, numMulti, numDiv} from './util'
 // 输出到控制
 export function log (val) {
   console.log(val)
@@ -17,6 +17,7 @@ export let zh = d3.locale({
   dateTime: '%a %b %e %X %Y',
   date: '%Y/%-m/%-d',
   time: '%H:%M:%S',
+  tipTime: '%m/%d %H:%M',
   periods: ['上午', '下午'],
   days: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
   shortDays: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
@@ -24,12 +25,22 @@ export let zh = d3.locale({
   shortMonths: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
 })
 
+// 格式化时间
+export function formatTime (style) {
+  return d3.time.format(style)
+}
+
 // 每日交易时间
 export let tradeTime = ['09:30', '10:00', '10:30', '11:00', '11:30', '13:30', '14:00', '14:30', '15:00']
 
 // 返回距 1970 年 1 月 1 日之间的毫秒数
 export function getMsec (time) {
   return (new Date(time)).getTime()
+}
+
+// 根据毫米数返回时间
+export function getDate (sec) {
+  return new Date(sec)
 }
 
 // 时间比例尺
@@ -241,10 +252,18 @@ export function drawGrid (gridG, svgArgs, hNums, vNums, gridGargs) {
  * rectArgs => 参数{'class': '', 'x': 0, 'y': 0, 'width': 0, 'height': 0, 'fill': 'none'}
  */
 export function drawRect (G, rectArgs) {
-  G.append('rect')
+  return G.append('rect')
     .attr(rectArgs)
+}
 
-  return G
+/**
+ * 添加文字
+ * G => 容器
+ * textArgs => 参数
+ */
+export function drawText (G, textArgs) {
+  return G.append('text')
+    .attr(textArgs)
 }
 
 /**
@@ -327,4 +346,16 @@ export function drawBreathLamp (G, lampArgs) {
     .attr(lampArgs)
 
   return breathLamp
+}
+
+/**
+ * 绘制一条直线
+ * G => 容器
+ * lineArgs => 参数
+ */
+export function drawLine (G, lineArgs) {
+  let line = G.append('line')
+    .attr(lineArgs)
+
+  return line
 }

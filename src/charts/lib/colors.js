@@ -8,5 +8,9 @@ colors[0] = {
   fillGreen: '#7ACA67', // 绿色柱状图
   axisTextRed: '#F34A47', // 纵坐标轴刻度颜色
   axisTextGreen: '#44BF3E', // 纵坐标轴刻度颜色
-  axitTextGray: '#535353' // 纵坐标轴刻度颜色
+  axitTextGray: '#535353', // 纵坐标轴刻度颜色
+  cursorBlue: '#307CD5', // 十字光标颜色
+  tipBlue: '#D4E8FF', // 十字光标提示框颜色
+  tipBorderBlue: '#7CB0EC', // 十字光标提示框边框颜色
+  tipTextBlue: '#146BCF' // 十字光标提示框字体颜色
 }
