@@ -603,14 +603,14 @@ export default function (param, svgArgs) {
         return store.dataDict[timeIndex] ? scaleX(df.getMsec(store.dataDict[timeIndex].time)) : 0
       })
       .attr('cy', () => {
-        return cursorPrice.close !== 0 ? scaleY1(cursorPrice.close) : -100
+        return cursorPrice.close !== undefined ? scaleY1(cursorPrice.close) : -100
       })
     historyLampwick
       .attr('cx', () => {
         return store.dataDict[timeIndex] ? scaleX(df.getMsec(store.dataDict[timeIndex].time)) : 0
       })
       .attr('cy', () => {
-        return cursorPrice.close !== 0 ? scaleY1(cursorPrice.close) : -100
+        return cursorPrice.close !== undefined ? scaleY1(cursorPrice.close) : -100
       })
 
     // 水平光标线在行情区与第一指标区之间时隐藏
@@ -648,13 +648,14 @@ export default function (param, svgArgs) {
     floatBox.attr('transform', () => {
       return x <= chartW / 2 ? `translate(${lw + chartW - 140},${th})` : `translate(${lw},${th})`
     })
+    let cursorPriceClose = cursorPrice.close ? cursorPrice.close : 0
     let flafloatValArr = [df.formatTime('%m/%d %H:%M')(tipTime),
       cursorPrice.close,
       df.formatVal(cursorMaPrice),
-      df.formatVal(cursorPrice.close - param.priceMid),
-      `${df.formatVal((cursorPrice.close - param.priceMid) / param.priceMid * 100)}%`,
-      df.formatVal(cursorPrice.volume),
-      df.formatVal(cursorPrice.balance)
+      df.formatVal(cursorPriceClose - param.priceMid),
+      `${df.formatVal((cursorPriceClose - param.priceMid) / param.priceMid * 100)}%`,
+      df.formatVal(cursorPrice.volume || 0),
+      df.formatVal(cursorPrice.balance || 0)
     ]
     flafloatValArr.forEach((d, i) => {
       floatVal[`index${i}`].text(d)
