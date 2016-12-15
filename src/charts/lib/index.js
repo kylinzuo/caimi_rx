@@ -134,26 +134,65 @@ export function area (scaleX, scaleY, time, y, h) {
     })
 }
 
-// 定义一个线性渐变
+// 定义线性渐变
 export function linearGradient (svg, id, startColor, endColor) {
   let defs = svg.append('defs')
 
-  let linearGradient = defs.append('linearGradient')
+  let linearGradientEl = defs.append('linearGradient')
     .attr('id', id)
     .attr('x1', '0%')
     .attr('y1', '0%')
     .attr('x2', '0%')
     .attr('y2', '100%')
 
-  linearGradient.append('stop')
+  linearGradientEl.append('stop')
     .attr('offset', '0%')
     .style('stop-color', startColor.toString())
 
-  linearGradient.append('stop')
+  linearGradientEl.append('stop')
     .attr('offset', '100%')
     .style('stop-color', endColor.toString())
 
-  return linearGradient
+  return linearGradientEl
+}
+
+// 定义放射性渐变
+export function radialGradient (svg, id, startColor, endColor) {
+  let defs = svg.append('defs')
+
+  let radialGradientEl = defs.append('radialGradient')
+    .attr('id', id)
+    .attr('cx', '50%')
+    .attr('cy', '50%')
+    .attr('r', '50%')
+    .attr('fx', '50%')
+    .attr('fy', '50%')
+
+  radialGradientEl.append('stop')
+    .attr('offset', '0%')
+    .style('stop-color', startColor.toString())
+    .style('stop-opacity', 0.8)
+
+  radialGradientEl.append('stop')
+    .attr('offset', '100%')
+    .style('stop-color', endColor.toString())
+    .style('stop-opacity', 0)
+
+  return radialGradientEl
+}
+
+// 定义SVG滤镜 高斯模糊
+export function gaussianBlur (svg, id) {
+  let defs = svg.append('defs')
+
+  let filter = defs.append('filter')
+    .attr('id', id)
+
+  let gaussianBlurEl = filter.append('feGaussianBlur')
+    .attr('in', 'SourceGraphic')
+    .attr('stdDeviation', 5)
+
+  return gaussianBlurEl
 }
 
 /**
@@ -318,7 +357,20 @@ export function drawHistogram (G, rectArgs, data, type, scaleX, scaleY, h, red, 
   let enter = update.enter()
   let exit = update.exit()
 
-  update.attr(rectArgs)
+  update
+    .attr(rectArgs)
+    .attr('x', (d, i) => {
+      return scaleX((new Date(d.time)).getTime())
+    })
+    .attr('y', (d, i) => {
+      return h - scaleY(d[type])
+    })
+    .attr('height', (d, i) => {
+      return scaleY(d[type])
+    })
+    .attr('fill', (d, i) => {
+      return d.close - d.open >= 0 ? red : green
+    })
   enter.append('rect')
     .attr(rectArgs)
     .attr('x', (d, i) => {
