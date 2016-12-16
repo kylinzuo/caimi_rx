@@ -318,7 +318,8 @@ export function drawAreaPolyline (G, areaArgs, data, area) {
   let enter = update.enter()
   let exit = update.exit()
 
-  update.attr(areaArgs)
+  update.attr('d', area)
+    // .attr(areaArgs)
   enter.append('path')
     .attr('d', area)
     .attr(areaArgs)
@@ -338,7 +339,8 @@ export function drawPolyline (G, polylineArgs, data, line) {
   let enter = update.enter()
   let exit = update.exit()
 
-  update.attr(polylineArgs)
+  update.attr('d', line)
+    // .attr(polylineArgs)
   enter.append('path')
     .attr('d', line)
     .attr(polylineArgs)

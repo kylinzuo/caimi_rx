@@ -20,5 +20,8 @@ colors[0] = {
   lampGreen: '#44BF3E', // 呼吸灯绿色
   lampWhite: '#fff', // 呼吸灯白色
   floatBg: '#fff', // 浮动框背景色
-  floatGray: '#D5D5D5' // 浮动框灰色
+  floatGray: '#D5D5D5', // 浮动框灰色
+  floatTextGray: '#535353', // 浮动框灰色字体
+  floatTextRed: '#F34A47', // 浮动框红色色字体
+  floatTextGreen: '#14C041' // 浮动框绿色色字体
 }

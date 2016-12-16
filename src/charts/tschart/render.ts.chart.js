@@ -19,11 +19,12 @@ let store = {
 // 指标一区绘图数据
 let indicators1 = ['成交量', '成交额']
 let indicators1Index = 0
+let cursorFlag = false
 
 /**
  * 输出分时图对外接口
  */
-export default function (param, svgArgs) {
+export default function (param, svgArgs, toggleChart) {
   // 将传入的数据缓存起来
   store.data = param.data.concat([])
   // df.log(svgArgs)
@@ -78,7 +79,7 @@ export default function (param, svgArgs) {
     class: 'lampwick',
     cx: -100,
     cy: -100,
-    r: 2.5
+    r: 3.5
   })
   // 随光标移动价格圆点
   let historyLamp = df.drawBreathLamp(lampG, {
@@ -238,6 +239,7 @@ export default function (param, svgArgs) {
   let floatBox = svg.append('g')
     .attr('class', 'floatBox')
     .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
+    .attr('opacity', 0)
 
   df.drawRect(floatBox, {
     class: 'floatBoxR',
@@ -263,7 +265,7 @@ export default function (param, svgArgs) {
       'text-anchor': 'start'
     }).text(d)
     floatVal[`index${i}`] = df.drawText(floatBox, {
-      'font-family': 'PingFangSC-Regular',
+      'font-family': 'PingFangSC-Medium',
       'font-size': 14,
       dx: 140 - 8,
       dy: 17 + 23 * i,
@@ -292,8 +294,24 @@ export default function (param, svgArgs) {
   /**
    * socket 推送数据更新视图
    */
-  this.render = function (svg, store) {
-    // df.log(store.data)
+  this.render = function (filterData) {
+    // 更新绘图所需数据
+    store.data = filterData || store.data
+
+    let gridHNums = svgArgs.height > 450 ? 20 : 8 // 水平分割多少格
+    // 无数据时默认只绘制网格
+    if (store.data.length === 0) {
+      df.drawGrid(gridG, svgArgs, gridHNums, 8, {
+        width: chartW,
+        height: chartH,
+        top: th,
+        bottom: bh,
+        left: lw,
+        right: rw,
+        stroke: colors[svgArgs.theme].gray
+      })
+      return
+    }
     let timeSet = new Set()
     store.data.forEach((d, i) => {
       store.dataDict[d.time] = d
@@ -308,9 +326,13 @@ export default function (param, svgArgs) {
     time.forEach((d, i) => {
       let newD = d.replace(/-/g, '/')
       xTime.push((new Date(`${newD} 09:30`)).getTime())
-      xTime.push((new Date(`${newD} 11:30`)).getTime())
-      xTime.push((new Date(`${newD} 13:00`)).getTime())
-      xTime.push((new Date(`${newD} 15:00`)).getTime())
+      xTime.push((new Date(`${newD} 11:31`)).getTime())
+      xTime.push((new Date(`${newD} 13:01`)).getTime())
+      if (i === time.length - 1) {
+        xTime.push((new Date(`${newD} 15:00`)).getTime())
+      } else {
+        xTime.push((new Date(`${newD} 15:01`)).getTime())
+      }
       let startVal = i * chartW / time.length
       let endVal = (i + 1) * chartW / time.length
       xWidth = [...xWidth, ...[startVal, startVal + (endVal - startVal) / 2, startVal + (endVal - startVal) / 2, endVal]]
@@ -338,9 +360,8 @@ export default function (param, svgArgs) {
       .attr('transform', `translate(0,4)`)
 
     // => 绘制网格
-    let gridHNums = svgArgs.height > 450 ? 20 : 8 // 水平分割多少格
     let gridVNums = scaleTimeArr.length - 1 // 垂直分割多少格
-    let gridGargs = {
+    df.drawGrid(gridG, svgArgs, gridHNums, gridVNums, {
       width: chartW,
       height: chartH,
       top: th,
@@ -348,8 +369,7 @@ export default function (param, svgArgs) {
       left: lw,
       right: rw,
       stroke: colors[svgArgs.theme].gray
-    }
-    df.drawGrid(gridG, svgArgs, gridHNums, gridVNums, gridGargs)
+    })
 
     // 每格网格的高度
     let unitGridH = chartH / gridHNums
@@ -380,7 +400,11 @@ export default function (param, svgArgs) {
       .call(df.axis(scalePrice, 'left'))
       .selectAll('text')
       .attr('fill', (d, i) => {
-        return i !== chartH1GridNums / 2 ? (i < chartH1GridNums / 2 ? colors[param.theme].axisTextGreen : colors[param.theme].axisTextRed) : colors[param.theme].axitTextGray
+        return i !== chartH1GridNums / 2
+          ? (i < chartH1GridNums / 2
+            ? colors[param.theme].axisTextGreen
+            : colors[param.theme].axisTextRed)
+          : colors[param.theme].axitTextGray
       })
       .attr('transform', (d, i) => {
         return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
@@ -392,7 +416,11 @@ export default function (param, svgArgs) {
       .call(df.axis(scalePricePercent, 'right', '%'))
       .selectAll('text')
       .attr('fill', (d, i) => {
-        return i !== chartH1GridNums / 2 ? (i < chartH1GridNums / 2 ? colors[param.theme].axisTextGreen : colors[param.theme].axisTextRed) : colors[param.theme].axitTextGray
+        return i !== chartH1GridNums / 2
+          ? (i < chartH1GridNums / 2
+            ? colors[param.theme].axisTextGreen
+            : colors[param.theme].axisTextRed)
+          : colors[param.theme].axitTextGray
       })
       .attr('transform', (d, i) => {
         return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
@@ -414,8 +442,21 @@ export default function (param, svgArgs) {
       })
       .attr('fill', () => {
         let lastIndex = param.data.length - 1
-        // return lastIndex > 0 ? (param.data[lastIndex].close - param.data[lastIndex].close >= 0 ? colors[param.theme].lampRed : colors[param.theme].lampGreen) : colors[param.theme].lampRed
-        return lastIndex > 0 ? (param.data[lastIndex].close - param.data[lastIndex - 1].close >= 0 ? `url(#radialGradientRed)` : `url(#radialGradientGreen)`) : `url(#radialGradientRed)`
+        if (lastIndex > 0) {
+          if (store.data[lastIndex].time.indexOf('15:00:00') >= 0) {
+            // 收盘后，价格收阳线的，呼吸灯为红色。价格收阴线的，呼吸灯为绿色。
+            return param.data[lastIndex].close - param.priceMid >= 0
+              ? `url(#radialGradientRed)`
+              : `url(#radialGradientGreen)`
+          } else {
+            // 现价高于/等于前一个点的，呼吸灯为红色。现价低于前一个点的，呼吸灯为绿色。
+            return param.data[lastIndex].close - param.data[lastIndex - 1].close >= 0
+              ? `url(#radialGradientRed)`
+              : `url(#radialGradientGreen)`
+          }
+        } else {
+          return `url(#radialGradientRed)`
+        }
       })
     latestLampwick
       .attr('cx', () => {
@@ -426,7 +467,20 @@ export default function (param, svgArgs) {
       })
       .attr('fill', () => {
         let lastIndex = param.data.length - 1
-        return lastIndex > 0 ? (param.data[lastIndex].close - param.data[lastIndex - 1].close >= 0 ? colors[param.theme].lampRed : colors[param.theme].lampGreen) : colors[param.theme].lampRed
+        if (lastIndex > 0) {
+          if (store.data[lastIndex].time.indexOf('15:00:00') >= 0) {
+            // 收盘后，价格收阳线的，呼吸灯为红色。价格收阴线的，呼吸灯为绿色。
+            return param.data[lastIndex].close - param.priceMid >= 0
+              ? colors[param.theme].lampRed
+              : colors[param.theme].lampGreen
+          } else {
+            return param.data[lastIndex].close - param.data[lastIndex - 1].close >= 0
+              ? colors[param.theme].lampRed
+              : colors[param.theme].lampGreen
+          }
+        } else {
+          return colors[param.theme].lampRed
+        }
       })
     /**
      * 行情区价格、均线走势 + 成交量、成交额柱状图
@@ -465,7 +519,9 @@ export default function (param, svgArgs) {
 
     // 指标一区 => 分时量 || 分时额类型
     function updateIndicators2 () {
-      let volumeMax = indicators1[indicators1Index] === '成交量' ? df.max(store.data, 'volume') : df.max(store.data, 'balance')
+      let volumeMax = indicators1[indicators1Index] === '成交量'
+        ? df.max(store.data, 'volume')
+        : df.max(store.data, 'balance')
       let vbRange = []
       let scaleVBHeight = []
       let vbUnit = chartH2 / chartH2GridNums
@@ -508,13 +564,43 @@ export default function (param, svgArgs) {
     })
 
     /**
-     * 定义鼠标事件
+     * 事件交互
      */
-    // 阻止默认双击放大事件
+    // => 监听事件键盘上下键事件
+    d3.select(`body`).on('keydown', function () {
+      d3.event.preventDefault()
+      if (d3.event.keyCode === 38) {
+        toggleChart(d3.event.key)
+      } else if (d3.event.keyCode === 40) {
+        toggleChart(d3.event.key)
+      }
+    })
+    // =>  阻止默认双击放大事件
     svg.on('dblclick.zoom', null)
+    //  => 定义鼠标事件
     eventGRect
-      .on('mouseover', () => {
-        showCousor()
+      .on('click', function () {
+        // 阻止默认事件
+        d3.event.preventDefault()
+        cursorFlag = !cursorFlag
+        if (cursorFlag) {
+          showCousor()
+        } else {
+          hideCorsor()
+          return
+        }
+        let x = d3.mouse(this)[0]
+        let y = d3.mouse(this)[1]
+        mousemove({
+          x: x,
+          y: y,
+          scaleX: scaleX,
+          chartH1: chartH1,
+          chartH2: chartH2,
+          scaleY1: scaleY1,
+          scaleY2: scaleY2,
+          scaleYPercent: scaleYPercent
+        })
       })
       .on('mousemove', function () {
         let x = d3.mouse(this)[0]
@@ -530,28 +616,9 @@ export default function (param, svgArgs) {
           scaleYPercent: scaleYPercent
         })
       })
-      .on('mouseout', () => {
-        hideCorsor()
-      })
-      .on('click', function () {
-        // 阻止默认事件
-        d3.event.preventDefault()
-        let x = d3.mouse(this)[0]
-        let y = d3.mouse(this)[1]
-        mousemove({
-          x: x,
-          y: y,
-          scaleX: scaleX,
-          chartH1: chartH1,
-          chartH2: chartH2,
-          scaleY1: scaleY1,
-          scaleY2: scaleY2,
-          scaleYPercent: scaleYPercent
-        })
-      })
   }
   // 初始化视图
-  this.render(svg, store)
+  this.render()
 
   // 显示光标
   function showCousor () {
@@ -561,6 +628,7 @@ export default function (param, svgArgs) {
     percentTipG.attr('opacity', 1)
     historyLamp.attr('opacity', 0.5)
     historyLampwick.attr('opacity', 1)
+    floatBox.attr('opacity', 1)
   }
   // 隐藏光标
   function hideCorsor () {
@@ -570,6 +638,7 @@ export default function (param, svgArgs) {
     percentTipG.attr('opacity', 0)
     historyLamp.attr('opacity', 0)
     historyLampwick.attr('opacity', 0)
+    floatBox.attr('opacity', 0)
   }
 
   // 光标移动时更新光标指示数据
@@ -638,27 +707,53 @@ export default function (param, svgArgs) {
       percentTipVal = 0
     }
     priceTipVal = df.formatVal(priceTipVal)
-    priceTipG.attr('transform', `translate(${0},${y > 10 ? th + y - 10 : th})`)
+    priceTipG.attr('transform', `translate(${0},${y > 10 ? (y < chartH - 9 ? th + y - 10 : th + chartH - 18) : th})`)
     priceTipText.text(priceTipVal)
 
     percentTipG.attr('transform', `translate(${lw + chartW},${y > 10 ? th + y - 10 : th})`)
     percentTipText.text(`${percentTipVal}%`)
 
     // 更新浮动框位置 与 内容
-    floatBox.attr('transform', () => {
-      return x <= chartW / 2 ? `translate(${lw + chartW - 140},${th})` : `translate(${lw},${th})`
-    })
-    let cursorPriceClose = cursorPrice.close ? cursorPrice.close : 0
-    let flafloatValArr = [df.formatTime('%m/%d %H:%M')(tipTime),
-      cursorPrice.close,
-      df.formatVal(cursorMaPrice),
-      df.formatVal(cursorPriceClose - param.priceMid),
-      `${df.formatVal((cursorPriceClose - param.priceMid) / param.priceMid * 100)}%`,
-      df.formatVal(cursorPrice.volume || 0),
-      df.formatVal(cursorPrice.balance || 0)
-    ]
-    flafloatValArr.forEach((d, i) => {
-      floatVal[`index${i}`].text(d)
-    })
+    if (cursorPrice.close) {
+      floatBox.attr('opacity', 1)
+      floatBox.attr('transform', () => {
+        return x <= chartW / 2 ? `translate(${lw + chartW - 140},${th})` : `translate(${lw},${th})`
+      })
+      let cursorPriceClose = cursorPrice.close ? cursorPrice.close : 0
+      let flafloatValArr = [df.formatTime('%m/%d %H:%M')(tipTime),
+        cursorPrice.close,
+        df.formatVal(cursorMaPrice),
+        df.formatVal(cursorPriceClose !== 0 ? cursorPriceClose - param.priceMid : cursorPriceClose),
+        `${cursorPriceClose !== 0 ? df.formatVal((cursorPriceClose - param.priceMid) / param.priceMid * 100) : 0}%`,
+        df.formatVal(cursorPrice.volume || 0),
+        df.formatVal(cursorPrice.balance || 0)
+      ]
+      flafloatValArr.forEach((d, i) => {
+        floatVal[`index${i}`].text(d)
+          .attr('fill', () => {
+            if (i === 1) {
+              return cursorPriceClose - param.priceMid >= 0
+                ? colors[param.theme].floatTextRed
+                : colors[param.theme].floatTextGreen
+            } else if (i === 2) {
+              return cursorMaPrice - param.priceMid >= 0
+              ? colors[param.theme].floatTextRed
+              : colors[param.theme].floatTextGreen
+            } else if (i === 3) {
+              return cursorPriceClose - param.priceMid >= 0
+              ? colors[param.theme].floatTextRed
+              : colors[param.theme].floatTextGreen
+            } else if (i === 4) {
+              return cursorPriceClose - param.priceMid >= 0
+              ? colors[param.theme].floatTextRed
+              : colors[param.theme].floatTextGreen
+            } else {
+              return colors[param.theme].floatTextGray
+            }
+          })
+      })
+    } else {
+      floatBox.attr('opacity', 0)
+    }
   }
 }
