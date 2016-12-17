@@ -8,7 +8,7 @@
  * @cb 上下案件回调函数
  * @cb return function
  * 调用方法 tsChart = new RenderTsChart(param, cb)
- * socekt 更新分时图调用实例方法 refreshChart
+ * socekt 更新数据调用实例方法 refreshChart
  * @data 新的绘图数据
  * @data return []
  * tsChart.refreshChart(data)

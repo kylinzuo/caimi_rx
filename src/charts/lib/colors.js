@@ -25,3 +25,6 @@ colors[0] = {
   floatTextRed: '#F34A47', // 浮动框红色色字体
   floatTextGreen: '#14C041' // 浮动框绿色色字体
 }
+
+export let kcolors = []
+kcolors[0] = {}

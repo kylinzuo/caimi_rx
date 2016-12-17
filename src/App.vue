@@ -1,15 +1,18 @@
 <template>
   <div id="app">
-    <Tschart></Tschart>
+    <!--<Tschart></Tschart>-->
+    <Kchart></Kchart>
   </div>
 </template>
 
 <script>
 import Tschart from './components/Tschart'
+import Kchart from './components/Kchart'
 export default {
   name: 'app',
   components: {
-    Tschart
+    Tschart,
+    Kchart
   }
 }
 </script>
