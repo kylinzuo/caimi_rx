@@ -27,4 +27,8 @@ colors[0] = {
 }
 
 export let kcolors = []
-kcolors[0] = {}
+kcolors[0] = {
+  bgColor: '#fff', // 背景色
+  headColor: '#eee', // 指标区头部颜色
+  settingBtnColor: '#B2B2B2' // 设置按钮颜色
+}

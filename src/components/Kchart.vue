@@ -1,23 +1,33 @@
 <template>
   <div class="kChart">
     <div id="kChartContainer" class="kChartContainer" onselectstart="return false;" ></div>
-    <div>
+    <div class="btnGroup">
+      <button @click="checkLists('MA')" :class="{highLight: lists.indexOf('MA') > -1 ? true : false}">MA</button>
+      <button @click="checkLists('VOL')" :class="{highLight: lists.indexOf('VOL') > -1 ? true : false}">VOL</button>
+      <button @click="checkLists('MA(VOL)')" :class="{highLight: lists.indexOf('MA(VOL)') > -1 ? true : false}">MA(VOL)</button>
+      <button @click="checkLists('MACD')" :class="{highLight: lists.indexOf('MACD') > -1 ? true : false}">MACD</button>
+      <button @click="checkLists('RSI')" :class="{highLight: lists.indexOf('RSI') > -1 ? true : false}">RSI</button>
+      <button @click="checkLists('KDJ')" :class="{highLight: lists.indexOf('KDJ') > -1 ? true : false}">KDJ</button>
+      <button @click="checkLists('BOLL')" :class="{highLight: lists.indexOf('BOLL') > -1 ? true : false}">BOLL</button>
+      <button @click="checkLists('VMACD')" :class="{highLight: lists.indexOf('VMACD') > -1 ? true : false}">VMACD</button>
+      <button @click="checkLists('WR')" :class="{highLight: lists.indexOf('WR') > -1 ? true : false}">WR</button>
       <button @click='refreshChart'>refreshChart</button>
     </div>
   </div>
 </template>
 
 <script>
-// import RenderTsChart from '../charts/ts.chart'
+import RenderKChart from '../charts/k.chart'
 import { getKchartService } from '../service/stockService'
+let filterData = []
+let newData = []
 export default {
   name: 'hello',
   data () {
     return {
       msg: 'Welcome to Your Vue.js App',
-      kChart: null,
-      filterData: [],
-      newData: []
+      lists: ['MA', 'VOL', 'MA(VOL)', 'MACD', 'RSI', 'WR', 'KDJ'],
+      kChart: null
     }
   },
   mounted () {
@@ -29,22 +39,28 @@ export default {
       symbol: '000001.SS',
       period: 'Day1'
     }, data => {
-      this.filterData = data.slice(0, 100)
-      this.newData = data.slice(100)
-      param.data = this.filterData // 绘图数据
+      filterData = data.slice(0, 200)
+      newData = data.slice(200)
+      param.data = filterData // 绘图数据
       param.period = 'Day1'
-      console.log(param.data)
-    //   this.tsChart = new RenderTsChart(param, this.toggleChart.bind(this))
+      param.lists = this.lists
+      this.tsChart = new RenderKChart(param)
     })
   },
   methods: {
-    toggleChart (data) {
-      console.log('切换：' + data)
-    },
     refreshChart () {
       console.log('refreshChart')
-    //   this.filterData.push(this.newData.shift())
-    //   this.tsChart.refreshChart(this.filterData)
+      filterData.push(newData.shift())
+      this.tsChart.refreshChart(filterData)
+    },
+    checkLists (val) {
+      let index = this.lists.indexOf(val)
+      if (index >= 0) {
+        this.lists.splice(index, 1)
+      } else {
+        this.lists.push(val)
+      }
+      this.tsChart.updateIndicators(Object.assign([], this.lists))
     }
   }
 }
@@ -62,5 +78,20 @@ export default {
 .kChartContainer {
   width: 100%;
   height: 100%;
+}
+.btnGroup {
+  margin-top: 10px;
+}
+.highLight {
+  color: #fff;
+  background-color: #979797;
+}
+button {
+  width: 80px;
+  height: 30px;
+  color: #535353;
+  border: none;
+  border-radius: 2px;
+  background-color: #fff;
 }
 </style>

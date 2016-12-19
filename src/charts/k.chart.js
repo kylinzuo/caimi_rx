@@ -10,7 +10,6 @@
  * @data return []
  * kChart.refreshChart(data)
  */
-import * as df from './lib/index'
 import DrawKChart from './kchart/render.k.chart'
 
 export default class RenderKChart {
@@ -22,14 +21,18 @@ export default class RenderKChart {
    * 渲染视图
    */
   renderChart () {
-    let margin = {top: 0, right: 0, bottom: 0, left: 0}
-    let svgArgs = df.getSvgSize(this.param, margin)
-    this.kChart = new DrawKChart(this.param, svgArgs)
+    this.kChart = new DrawKChart(this.param)
   }
   /**
    * 数据更新视图
    */
   refreshChart (filterData) {
     this.kChart.render(filterData)
+  }
+  /**
+   * 更新显示指标列表
+   */
+  updateIndicators (lists) {
+    this.kChart.updateIndicators(lists)
   }
 }

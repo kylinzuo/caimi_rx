@@ -4,8 +4,12 @@
 import d3 from 'd3'
 // import {numAdd, numSub, numMulti, numDiv} from './util'
 // 输出到控制
-export function log (val) {
-  console.log(val)
+export function log (key, val) {
+  if (val) {
+    console.log(key, val)
+  } else {
+    console.log(key)
+  }
 }
 
 // 简体中文本地化
@@ -412,4 +416,32 @@ export function drawLine (G, lineArgs) {
     .attr(lineArgs)
 
   return line
+}
+
+/**
+ * ================================================
+ * 以下k线图部分
+ * ================================================
+ */
+
+/**
+ * k线各指标容器模版
+ * G => 容器
+ */
+export function drawBox ({G, gClassName, w, h, color}) {
+  let g = G.append('g')
+    .attr('class', gClassName)
+
+  g.append('rect')
+    .attr({
+      class: 'head',
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      stroke: 'none',
+      fill: color
+    })
+
+  return g
 }
