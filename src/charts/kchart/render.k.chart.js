@@ -15,10 +15,28 @@ let store = {
   MAflag: false,
   MAVOLflag: false,
   BOLLflag: false,
-  lists: []
+  lists: [],
+  Kdata: [],
+  MAdata: [],
+  MAVolumedata: [],
+  MACDdata: [],
+  RSIdata: [],
+  KDJdata: [],
+  WRdata: [],
+  BOLLdata: []
 }
+
 // => 设置默认最多能显示哪些指标 如果增加新的指标时需要在此添加新的指标名称
 let indicatorsLists = ['VOL', 'MACD', 'RSI', 'KDJ', 'VMACD', 'WR']
+
+// => k线区高度 与 各指标区高度
+let kChartH
+let unitH
+// => 每一区域头部高度
+let headH = 25
+
+// => 存储所有需要用到的比例尺 便于交互时取用
+let scale = []
 
 export default function (param) {
   // => 获取svg尺寸
@@ -33,7 +51,18 @@ export default function (param) {
   let chartH = svgArgs.height - th - bh
 
   // => 缓存传入的绘图数据
-  store.data = param.data
+  store.data = param.data.sort(df.compare('time'))
+
+  /**
+   * rectWidth => k线实体默认宽度
+   * rectNum => 行情区显示K线的数量
+   * rectSpace => k线实体之间的距离
+   */
+  let rectWidth = 8
+  let rectNum = Math.floor(chartW / (2 + rectWidth))
+  let rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+  df.log('rectNum', rectNum)
+  df.log('rectSpace', rectSpace)
 
   // => 绘图容器中添加画布svg
   let svg = df.createSVG(svgArgs)
@@ -80,16 +109,14 @@ export default function (param) {
     })
 
     // => 计算k线区高度 与 指标容器高度
-    let kChartH = store.lists.length !== 0
+    kChartH = store.lists.length !== 0
       ? store.lists.length > 1
         ? chartH * 2 / (store.lists.length + 2)
         : chartH * 3 / 4
       : chartH
-    let unitH = store.lists.length !== 0 ? (chartH - kChartH) / store.lists.length : 0
-    // => 每一区域头部高度
-    let headH = 25
+    unitH = store.lists.length !== 0 ? (chartH - kChartH) / store.lists.length : 0
 
-    // 添加k线区容器
+    // => 添加k线区容器
     if (!document.querySelector('.KG')) {
       let KG = df.drawBox({
         G: svgG,
@@ -100,7 +127,7 @@ export default function (param) {
       })
       .attr('transform', `translate(0, 0)`)
 
-      // 添加设置按钮
+      // => 添加设置按钮
       df.drawBtn({
         G: KG,
         className: 'kSettingG',
@@ -112,10 +139,17 @@ export default function (param) {
         scaleY: 0.15
       })
 
-      // 添加网格容器
+      // => 添加网格容器
       KG.append('g')
         .attr({
           class: `KgridG`,
+          transform: `translate(${0},${headH})`
+        })
+
+      // => k线容器
+      KG.append('g')
+        .attr({
+          class: `Kchart`,
           transform: `translate(${0},${headH})`
         })
     }
@@ -187,18 +221,61 @@ export default function (param) {
       })
     })
 
-    renderChart(store.data)
+    dataFilter()
   }
 
   this.updateIndicators(param.lists)
 
   // => socket 推送数据时更新k线图
-  this.render = function (filterData) {
-    // 数据更新视图
-    renderChart(filterData)
+  this.render = function (data) {
+    // => 更新绘图数据
+    store.data = Array.isArray(data) ? data : store.data
+    dataFilter()
   }
 
-  function renderChart (filterData) {
-    //
+  // => 定义两个指向原始数据的指针 每次绘图提取出指针指向范围内的数据
+  let endIndex = store.data.length
+  let startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
+
+  /**
+   * 数据处理 将所有处理好用于绘图的数据存储于store数据仓库中
+   */
+  function dataFilter () {
+    // K线数据
+    store.Kdata = store.data.slice(startIndex, endIndex)
+    // => 绘制图形
+    renderChart()
+  }
+
+  /**
+   * 绘制图形
+   */
+  function renderChart () {
+    // => k线比例尺
+    let minPrice = d3.min(store.Kdata, (d) => { return d.low })
+    let maxPrice = d3.max(store.Kdata, (d) => { return d.high })
+    scale.priceScale = df.linear([minPrice, maxPrice], [kChartH - headH - 11, 11])
+    // => 绘制k线上下引线
+    df.drawkLeads({
+      G: d3.select('.Kchart'),
+      data: store.Kdata,
+      className: 'kLine',
+      rectWidth: rectWidth,
+      rectSpace: rectSpace,
+      scaleY: scale.priceScale,
+      red: colors[svgArgs.theme].kRed,
+      green: colors[svgArgs.theme].kGreen
+    })
+    // => 绘制k线实体
+    df.drawkRect({
+      G: d3.select('.Kchart'),
+      data: store.Kdata,
+      className: 'kRect',
+      rectWidth: rectWidth,
+      rectSpace: rectSpace,
+      scaleY: scale.priceScale,
+      red: colors[svgArgs.theme].kRed,
+      green: colors[svgArgs.theme].kGreen
+    })
   }
 }

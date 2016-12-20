@@ -31,5 +31,7 @@ kcolors[0] = {
   bgColor: '#fff', // 背景色
   headColor: '#eee', // 指标区头部颜色
   settingBtnColor: '#B2B2B2', // 设置按钮颜色
-  gridGray: '#E8E8E8' // 网格线颜色
+  gridGray: '#E8E8E8', // 网格线颜色
+  kRed: '#FF6E6B', // k线红色
+  kGreen: '#44BF3E' // k线绿色
 }

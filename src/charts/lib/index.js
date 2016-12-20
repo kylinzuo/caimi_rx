@@ -12,6 +12,21 @@ export function log (key, val) {
   }
 }
 
+// 按对象属性排序比较函数
+export function compare (propertyName) {
+  return function (object1, object2) {
+    let value1 = object1[propertyName]
+    let value2 = object2[propertyName]
+    if (value2 < value1) {
+      return 1
+    } else if (value2 > value1) {
+      return -1
+    } else {
+      return 0
+    }
+  }
+}
+
 // 简体中文本地化
 export let zh = d3.locale({
   decimal: '.',
@@ -462,4 +477,173 @@ export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scal
       fill: color,
       transform: `scale(${scaleX}, ${scaleY})`
     })
+}
+
+/**
+ * 绘制K线上下引线
+ * G => 容器
+ */
+export function drawkLeads ({G, data, className, rectWidth, rectSpace, scaleY, red, green}) {
+  // k线上下引线部分
+  let update = G.selectAll(`.${className}`)
+    .data(data)
+  let enter = update.enter()
+  let exit = update.exit()
+
+  update
+    .attr('x1', (d, i) => {
+      return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
+    })
+    .attr('y1', (d, i) => {
+      return scaleY(d.high)
+    })
+    .attr('x2', (d, i) => {
+      return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
+    })
+    .attr('y2', (d, i) => {
+      return scaleY(d.low)
+    })
+    .attr('stroke', (d, i) => {
+      if (d.close > d.open) {
+        return red
+      } else if (d.close < d.open) {
+        return green
+      } else {
+        if (i !== 0) {
+          if (data[i - 1].close <= d.close) {
+            return red
+          } else {
+            return green
+          }
+        } else {
+          return red
+        }
+      }
+    })
+
+  enter.append('line').attr('class', className)
+    .attr('x1', (d, i) => {
+      return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
+    })
+    .attr('y1', (d, i) => {
+      return scaleY(d.high)
+    })
+    .attr('x2', (d, i) => {
+      return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
+    })
+    .attr('y2', (d, i) => {
+      return scaleY(d.low)
+    })
+    .attr('stroke-width', 1)
+    .attr('stroke', (d, i) => {
+      if (d.close > d.open) {
+        return red
+      } else if (d.close < d.open) {
+        return green
+      } else {
+        if (i !== 0) {
+          if (data[i - 1].close <= d.close) {
+            return red
+          } else {
+            return green
+          }
+        } else {
+          return red
+        }
+      }
+    })
+
+  exit.remove()
+}
+
+/**
+ * 绘制K线实体
+ * G => 容器
+ */
+export function drawkRect ({G, data, className, rectWidth, rectSpace, scaleY, red, green}) {
+  let update = G.selectAll(`.${className}`)
+    .data(data)
+  let enter = update.enter()
+  let exit = update.exit()
+
+  update
+    .attr('x', (d, i) => {
+      return rectSpace + i * (rectWidth + rectSpace)
+    })
+    .attr('y', (d, i) => {
+      if (d.close > d.open) {
+        return scaleY(d.close)
+      } else {
+        return scaleY(d.open)
+      }
+    })
+    .attr('width', rectWidth)
+    .attr('height', (d, i) => {
+      if (Math.abs(scaleY(d.close) - scaleY(d.open)) !== 0) {
+        return Math.abs(scaleY(d.close) - scaleY(d.open)) > 1.5
+          ? Math.abs(scaleY(d.close) - scaleY(d.open))
+          : 1.5
+      } else {
+        return 1
+      }
+    })
+    .attr('fill', (d, i) => {
+      if (d.close > d.open) {
+        return red
+      } else if (d.close < d.open) {
+        return green
+      } else {
+        if (i !== 0) {
+          if (data[i - 1].close <= d.close) {
+            return red
+          } else {
+            return green
+          }
+        } else {
+          return red
+        }
+      }
+    })
+
+  enter.append('rect').attr('class', className)
+    .attr('x', (d, i) => {
+      return rectSpace + i * (rectWidth + rectSpace)
+    })
+    .attr('y', (d, i) => {
+      if (d.close >= d.open) {
+        return scaleY(d.close)
+      } else {
+        return scaleY(d.open)
+      }
+    })
+    .attr('width', rectWidth)
+    .attr('height', (d, i) => {
+      if (Math.abs(scaleY(d.close) - scaleY(d.open)) !== 0) {
+        return Math.abs(scaleY(d.close) - scaleY(d.open)) > 1.5
+          ? Math.abs(scaleY(d.close) - scaleY(d.open))
+          : 1.5
+      } else {
+        return 1
+      }
+    })
+    .attr('stroke', 'none')
+    .attr('fill', (d, i) => {
+      if (d.close > d.open) {
+        return red
+      } else if (d.close < d.open) {
+        return green
+      } else {
+        if (i !== 0) {
+          if (data[i - 1].close <= d.close) {
+            return red
+          } else {
+            return green
+          }
+        } else {
+          return red
+        }
+      }
+    })
+
+  exit.remove()
 }
