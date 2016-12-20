@@ -6,7 +6,6 @@ import * as df from '../lib/index'
 import { kcolors as colors } from '../lib/colors'
 import icons from '../lib/icons'
 
-df.log('icons', icons)
 /**
  * 定义全局变量
  */
@@ -24,7 +23,6 @@ let indicatorsLists = ['VOL', 'MACD', 'RSI', 'KDJ', 'VMACD', 'WR']
 export default function (param) {
   // => 获取svg尺寸
   let svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
-  df.log('svgArgs', svgArgs)
 
   // 图形四周宽度
   let lw = 56
@@ -56,20 +54,15 @@ export default function (param) {
   let svgG = svg.append('g')
     .attr('class', 'svgG')
     .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
-  df.log('svgG', svgG)
 
   // => 新增或减少指标区
   this.updateIndicators = function (lists) {
     lists = Array.isArray(lists) ? lists : store.lists
     // => 差集 找出哪些指标被去除并将其从视图中删除
-    df.log(store.lists)
     let diffVal = store.lists.filter(d => {
-      df.log('flag:', !(new Set(lists)).has(d))
       return !(new Set(lists)).has(d)
     })
-    df.log('diffVal===', diffVal)
     diffVal.forEach(d => {
-      df.log('d', d)
       d3.select(`.${d}G`).remove()
     })
 
@@ -106,22 +99,22 @@ export default function (param) {
       .attr('transform', `translate(0, 0)`)
 
       // 添加设置按钮
-      kG.append('g')
-        .attr('class', 'kSettingG')
-        .attr('transform', `translate(${chartW - 24}, ${2.5})`)
-        .append('path')
-        .attr({
-          d: icons.settings,
-          fill: colors[param.theme].settingBtnColor,
-          transform: `scale(0.2, 0.2)`
-        })
+      df.drawBtn({
+        G: kG,
+        className: 'kSettingG',
+        offsetW: chartW - 25,
+        offsetH: 5,
+        d: icons.settings,
+        color: colors[param.theme].settingBtnColor,
+        scaleX: 0.15,
+        scaleY: 0.15
+      })
     }
 
-    df.log('store.lists', store.lists)
     // => 添加指标区容器
     store.lists.forEach((d, i) => {
       if (!document.querySelector(`.${d}G`)) {
-        df.drawBox({
+        let g = df.drawBox({
           G: svgG,
           gClassName: `${d}G`,
           w: chartW,
@@ -129,6 +122,29 @@ export default function (param) {
           color: colors[param.theme].headColor
         })
         .attr('transform', `translate(0, ${kChartH + i * unitH})`)
+
+        // => 添加设置按钮
+        df.drawBtn({
+          G: g,
+          className: 'kSettingG',
+          offsetW: chartW - 50,
+          offsetH: 5,
+          d: icons.settings,
+          color: colors[param.theme].settingBtnColor,
+          scaleX: 0.15,
+          scaleY: 0.15
+        })
+        // => 添加关闭按钮
+        df.drawBtn({
+          G: g,
+          className: 'kCloseG',
+          offsetW: chartW - 25,
+          offsetH: 5,
+          d: icons.close,
+          color: colors[param.theme].settingBtnColor,
+          scaleX: 0.1667,
+          scaleY: 0.1667
+        })
       } else {
         d3.select(`.${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)

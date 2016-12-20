@@ -445,3 +445,19 @@ export function drawBox ({G, gClassName, w, h, color}) {
 
   return g
 }
+
+/**
+ * k线各指标设置按钮与关闭按钮
+ * G => 容器
+ */
+export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scaleY}) {
+  G.append('g')
+    .attr('class', className)
+    .attr('transform', `translate(${offsetW}, ${offsetH})`)
+    .append('path')
+    .attr({
+      d: d,
+      fill: color,
+      transform: `scale(${scaleX}, ${scaleY})`
+    })
+}

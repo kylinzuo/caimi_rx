@@ -26,7 +26,7 @@ export default {
   data () {
     return {
       msg: 'Welcome to Your Vue.js App',
-      lists: ['MA', 'VOL', 'MA(VOL)', 'MACD', 'RSI', 'WR', 'KDJ'],
+      lists: ['MA', 'VOL', 'MACD', 'RSI'],
       kChart: null
     }
   },
