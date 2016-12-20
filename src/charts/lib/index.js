@@ -452,8 +452,10 @@ export function drawBox ({G, gClassName, w, h, color}) {
  */
 export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scaleY}) {
   G.append('g')
-    .attr('class', className)
-    .attr('transform', `translate(${offsetW}, ${offsetH})`)
+    .attr({
+      class: className,
+      transform: `translate(${offsetW}, ${offsetH})`
+    })
     .append('path')
     .attr({
       d: d,

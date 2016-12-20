@@ -47,7 +47,7 @@ export default function (param) {
     'y': 0,
     'width': svgArgs.width,
     'height': svgArgs.height,
-    'fill': colors[param.theme].bgColor
+    'fill': colors[svgArgs.theme].bgColor
   })
 
   // 添加绘图容器
@@ -86,30 +86,49 @@ export default function (param) {
         : chartH * 3 / 4
       : chartH
     let unitH = store.lists.length !== 0 ? (chartH - kChartH) / store.lists.length : 0
+    // => 每一区域头部高度
+    let headH = 25
 
     // 添加k线区容器
-    if (!document.querySelector('.kG')) {
-      let kG = df.drawBox({
+    if (!document.querySelector('.KG')) {
+      let KG = df.drawBox({
         G: svgG,
-        gClassName: 'kG',
+        gClassName: 'KG',
         w: chartW,
-        h: 25,
-        color: colors[param.theme].headColor
+        h: headH,
+        color: colors[svgArgs.theme].headColor
       })
       .attr('transform', `translate(0, 0)`)
 
       // 添加设置按钮
       df.drawBtn({
-        G: kG,
+        G: KG,
         className: 'kSettingG',
-        offsetW: chartW - 25,
+        offsetW: chartW - headH,
         offsetH: 5,
         d: icons.settings,
-        color: colors[param.theme].settingBtnColor,
+        color: colors[svgArgs.theme].settingBtnColor,
         scaleX: 0.15,
         scaleY: 0.15
       })
+
+      // 添加网格容器
+      KG.append('g')
+        .attr({
+          class: `KgridG`,
+          transform: `translate(${0},${headH})`
+        })
     }
+    // => 更新网格位置
+    df.drawGrid(d3.select('.KgridG'), svgArgs, 6, 8, {
+      width: chartW,
+      height: kChartH - 25,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      stroke: colors[svgArgs.theme].gridGray
+    })
 
     // => 添加指标区容器
     store.lists.forEach((d, i) => {
@@ -118,8 +137,8 @@ export default function (param) {
           G: svgG,
           gClassName: `${d}G`,
           w: chartW,
-          h: 25,
-          color: colors[param.theme].headColor
+          h: headH,
+          color: colors[svgArgs.theme].headColor
         })
         .attr('transform', `translate(0, ${kChartH + i * unitH})`)
 
@@ -130,7 +149,7 @@ export default function (param) {
           offsetW: chartW - 50,
           offsetH: 5,
           d: icons.settings,
-          color: colors[param.theme].settingBtnColor,
+          color: colors[svgArgs.theme].settingBtnColor,
           scaleX: 0.15,
           scaleY: 0.15
         })
@@ -141,14 +160,31 @@ export default function (param) {
           offsetW: chartW - 25,
           offsetH: 5,
           d: icons.close,
-          color: colors[param.theme].settingBtnColor,
+          color: colors[svgArgs.theme].settingBtnColor,
           scaleX: 0.1667,
           scaleY: 0.1667
         })
+
+        // 添加网格容器
+        g.append('g')
+          .attr({
+            class: `${d}gridG`,
+            transform: `translate(${0},${headH})`
+          })
       } else {
         d3.select(`.${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)
       }
+      // => 更新网格位置
+      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, 4, 8, {
+        width: chartW,
+        height: unitH - 25 > 1 ? unitH - 25 : 1,
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        stroke: colors[svgArgs.theme].gridGray
+      })
     })
 
     renderChart(store.data)
