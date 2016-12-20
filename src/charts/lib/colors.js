@@ -33,5 +33,6 @@ kcolors[0] = {
   settingBtnColor: '#B2B2B2', // 设置按钮颜色
   gridGray: '#E8E8E8', // 网格线颜色
   kRed: '#FF6E6B', // k线红色
-  kGreen: '#44BF3E' // k线绿色
+  kGreen: '#44BF3E', // k线绿色
+  curveColor: ['#000000', '#E93030', '#00A600', '#F08C00', '#2775F8', '#909090'] // 曲线颜色 黑色、红色、绿色、黄色、蓝色、灰色
 }

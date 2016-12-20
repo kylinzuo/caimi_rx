@@ -644,6 +644,49 @@ export function drawkRect ({G, data, className, rectWidth, rectSpace, scaleY, re
         }
       }
     })
+    .on('click', (d) => { console.log(d) })
+
+  exit.remove()
+}
+
+/**
+ * k线曲线生产器
+ */
+export function kLine ({rectWidth, rectSpace, scaleY}) {
+  return d3.svg.line()
+    .x(function (d, i) {
+      return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
+    })
+    .y(function (d) {
+      return scaleY(d.value)
+    })
+    .interpolate('linear')
+}
+
+/**
+ * 绘制通用柱状图
+ * G => 容器
+ */
+export function drawRectChart ({G, data, className, x, y, width, height, fill}) {
+  let update = G.selectAll(`.${className}`)
+    .data(data)
+  let enter = update.enter()
+  let exit = update.exit()
+
+  update.attr('x', x)
+    .attr('y', y)
+    .attr('width', width)
+    .attr('height', height)
+    .attr('fill', fill)
+
+  enter.append('rect')
+    .attr('class', className)
+    .attr('x', x)
+    .attr('y', y)
+    .attr('width', width)
+    .attr('height', height)
+    .attr('fill', fill)
+    .on('click', (d) => { console.log(d) })
 
   exit.remove()
 }
