@@ -16,15 +16,16 @@ let initParam = {
  * @param  {array} rawData
  * @param  {array} caculateParam
  * @return {array} 二维数组
+ * type 'close' => MACD ／ 'volume' => VMACD
  */
 
-function caculate (rawData, caculateParam) {
+function caculate (rawData, caculateParam, type) {
   if (!(rawData instanceof Array && caculateParam instanceof Array)) throw new Error('Data or caculateParam is not Array')
   let mathData = []
   rawData.forEach((d, i) => {
     mathData.push(d)
   })
-  return MACD(mathData, 'close', caculateParam[0], caculateParam[1], caculateParam[2])
+  return MACD(mathData, type, caculateParam[0], caculateParam[1], caculateParam[2])
 }
 // type = close: MACD; type = volume: VMACD;
 function MACD (data, type, tShort, tLong, N) {

@@ -44,7 +44,7 @@ export default {
       param.data = filterData // 绘图数据
       param.period = 'Day1'
       param.lists = this.lists
-      this.tsChart = new RenderKChart(param)
+      this.tsChart = new RenderKChart(param, this.cb)
     })
   },
   methods: {
@@ -61,6 +61,13 @@ export default {
         this.lists.push(val)
       }
       this.tsChart.updateIndicators(Object.assign([], this.lists))
+    },
+    cb (data) {
+      console.log(data)
+      if (data.type === 'close') {
+        let index = this.lists.indexOf(data.data)
+        this.lists.splice(index, 1)
+      }
     }
   }
 }

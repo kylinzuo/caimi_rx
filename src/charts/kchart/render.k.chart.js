@@ -21,11 +21,13 @@ let store = {
   MAflag: false, // => MA 移动平局线是否显示标志
   MAVOLflag: false, // => 成交量／成交额 是否显示标志
   BOLLflag: false, // => 布林线是否显示标志
+  sourceLists: [], // => 原始指标显示列表
   lists: [], // => 指标显示列表
   Kdata: [], // => k线绘图数据
   MAdata: [], // => MA移动均线绘图数据
   MAVolumedata: [], // => 成交量／成交额 均线绘图数据
   MACDdata: [], // => MACD绘图数据
+  VMACDdata: [], // => VMACD绘图数据
   RSIdata: [], // => RSI绘图数据
   KDJdata: [], // => KDJ绘图数据
   WRdata: [], // => WR绘图数据
@@ -34,6 +36,7 @@ let store = {
   MAVolumeParam: [5, 10, 20],
   MABalanceParam: [5, 10, 20],
   MACDParam: [12, 26, 9],
+  VMACDParam: [12, 26, 9],
   RSIParam: [6, 12, 24],
   KDJParam: [9, 3, 3],
   WRParam: [10, 6],
@@ -58,7 +61,7 @@ let indicators1ToggleArr = ['成交量', '成交额']
 let indicators1ToggleArrType = ['volume', 'balance']
 let toggleArr1index = 0
 
-export default function (param) {
+export default function (param, cb) {
   // => 获取svg尺寸
   let svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
 
@@ -76,6 +79,7 @@ export default function (param) {
   store.MAVolumeParam = param.MAVolumeParam || store.MAVolumeParam
   store.MABalanceParam = param.MABalanceParam || store.MABalanceParam
   store.MACDParam = param.MACDParam || store.MACDParam
+  store.VMACDParam = param.VMACDParam || store.VMACDParam
   store.RSIParam = param.RSIParam || store.RSIParam
   store.KDJParam = param.KDJParam || store.KDJParam
   store.WRParam = param.WRParam || store.WRParam
@@ -116,17 +120,21 @@ export default function (param) {
 
   // => 新增或减少指标区
   this.updateIndicators = function (lists) {
-    lists = Array.isArray(lists) ? lists : store.lists
+    store.sourceLists = Array.isArray(lists)
+      ? Object.assign([], lists)
+      : store.sourceLists
     // => 差集 找出哪些指标被去除并将其从视图中删除
-    let diffVal = store.lists.filter(d => {
-      return !(new Set(lists)).has(d)
-    })
-    diffVal.forEach(d => {
-      d3.select(`.${d}G`).remove()
+    store.lists.forEach((d) => {
+      if (!(new Set(store.sourceLists)).has(d)) {
+        d3.select(`.${d}G`).remove()
+      }
     })
 
+    store.MAflag = false
+    store.MAVOLflag = false
+    store.BOLLflag = false
     // 过滤出需要单独一个指标区的指标
-    store.lists = lists.filter(d => {
+    store.lists = store.sourceLists.filter(d => {
       if (d === 'MA') {
         store.MAflag = true
       } else if (d === 'MA(VOL)') {
@@ -147,27 +155,10 @@ export default function (param) {
     unitH = store.lists.length !== 0 ? (chartH - kChartH) / store.lists.length : 0
 
     // => 添加k线区容器
-    if (!document.querySelector('.KG')) {
-      let KG = df.drawBox({
-        G: svgG,
-        gClassName: 'KG',
-        w: chartW,
-        h: headH,
-        color: colors[svgArgs.theme].headColor
-      })
-      .attr('transform', `translate(0, 0)`)
-
-      // => 添加设置按钮
-      df.drawBtn({
-        G: KG,
-        className: 'kSettingG',
-        offsetW: chartW - headH,
-        offsetH: 5,
-        d: icons.settings,
-        color: colors[svgArgs.theme].settingBtnColor,
-        scaleX: 0.15,
-        scaleY: 0.15
-      })
+    if (!document.querySelector('.KHeadG')) {
+      let KG = svgG.append('g')
+        .attr('class', 'KG')
+        .attr('transform', `translate(0, 0)`)
 
       // => 添加网格容器
       KG.append('g')
@@ -182,7 +173,92 @@ export default function (param) {
           class: `Kchart`,
           transform: `translate(${0},${headH})`
         })
+      // => BOLL容器
+      KG.append('g')
+        .attr({
+          class: `BOLLchart`,
+          transform: `translate(${0},${headH})`
+        })
+
+      // => k线区头部
+      let KHeadG = df.drawBox({
+        G: KG,
+        gClassName: 'KHeadG',
+        w: chartW,
+        h: headH,
+        color: colors[svgArgs.theme].headColor
+      })
+      // => 添加设置按钮
+      df.drawBtn({
+        G: KHeadG,
+        className: 'kSettingG',
+        offsetW: chartW - headH,
+        offsetH: 5,
+        d: icons.settings,
+        color: colors[svgArgs.theme].settingBtnColor,
+        scaleX: 0.15,
+        scaleY: 0.15
+      })
     }
+    // => 判断k线部分设置按钮是否需要显示
+    d3.select('.kSettingG')
+      .attr('opacity', () => {
+        return store.MAflag || store.BOLLflag ? 1 : 0
+      })
+    // => 添加按钮事件接收器 设置按钮与关闭按钮
+    df.drawRect(d3.select('.kSettingG'), {
+      class: 'btnEventR',
+      x: 0,
+      y: 0,
+      width: 15,
+      height: 15,
+      fill: '#fff',
+      opacity: 0
+    })
+    .attr('cursor', 'pointer')
+    .on('mouseover', () => {
+      if (!(store.MAflag || store.BOLLflag)) {
+        return
+      }
+      // => 鼠标放在设置按钮上时 放大按钮
+      d3.select(`.kSettingG`)
+        .attr({
+          opacity: 0.5,
+          transform: `translate(${chartW - headH}, ${3.5})`
+        })
+        .select('path')
+        .attr({
+          fill: 'red',
+          transform: `scale(${0.18}, ${0.18})`
+        })
+    })
+    .on('mouseout', () => {
+      if (!(store.MAflag || store.BOLLflag)) {
+        return
+      }
+      // => 鼠标离开设置按钮上时 恢复按钮
+      d3.select(`.kSettingG`)
+        .attr({
+          opacity: 1,
+          transform: `translate(${chartW - headH}, ${5})`
+        })
+        .select('path')
+        .attr({
+          fill: colors[svgArgs.theme].settingBtnColor,
+          transform: `scale(${0.15}, ${0.15})`
+        })
+    })
+    .on('click', () => {
+      if (!(store.MAflag || store.BOLLflag)) {
+        return
+      }
+      // => 回调函数 通知弹出设置模态框
+      cb({
+        type: 'setting',
+        data: store.MAflag ? 'MA' : 'BOLL'
+      })
+    })
+
     // => 更新网格位置
     df.drawGrid(d3.select('.KgridG'), svgArgs, 6, 8, {
       width: chartW,
@@ -196,37 +272,19 @@ export default function (param) {
 
     // => 添加指标区容器
     store.lists.forEach((d, i) => {
-      if (!document.querySelector(`.${d}G`)) {
-        let g = df.drawBox({
-          G: svgG,
-          gClassName: `${d}G`,
-          w: chartW,
-          h: headH,
-          color: colors[svgArgs.theme].headColor
-        })
-        .attr('transform', `translate(0, ${kChartH + i * unitH})`)
+      if (!document.querySelector(`.${d}HeadG`)) {
+        let g = svgG.append('g')
+          .attr('class', `${d}G`)
+          .attr('transform', `translate(0, ${kChartH + i * unitH})`)
 
-        // => 添加设置按钮
-        df.drawBtn({
-          G: g,
-          className: 'kSettingG',
-          offsetW: chartW - 50,
-          offsetH: 5,
-          d: icons.settings,
-          color: colors[svgArgs.theme].settingBtnColor,
-          scaleX: 0.15,
-          scaleY: 0.15
-        })
-        // => 添加关闭按钮
-        df.drawBtn({
-          G: g,
-          className: 'kCloseG',
-          offsetW: chartW - 25,
-          offsetH: 5,
-          d: icons.close,
-          color: colors[svgArgs.theme].settingBtnColor,
-          scaleX: 0.1667,
-          scaleY: 0.1667
+        // => 添加背景
+        df.drawRect(g, {
+          class: `${d}BG`,
+          x: 0,
+          y: headH,
+          width: chartW,
+          height: unitH - headH,
+          fill: colors[svgArgs.theme].bgColor
         })
 
         // 添加网格容器
@@ -241,9 +299,151 @@ export default function (param) {
             class: `${d}chart`,
             transform: `translate(${0},${headH})`
           })
+        // 添加头部
+        let hg = df.drawBox({
+          G: g,
+          gClassName: `${d}HeadG`,
+          w: chartW,
+          h: headH,
+          color: colors[svgArgs.theme].headColor
+        })
+        // => 添加指标区标题
+        df.drawText(hg, {
+          'font-family': 'PingFangSC-Medium',
+          'font-size': 12,
+          stroke: 'none',
+          fill: colors[svgArgs.theme].indexTextColor,
+          x: 4,
+          y: 16.5
+        })
+        .text(d === 'VOL' ? indicators1ToggleArr[toggleArr1index] : d)
+        // => 添加设置按钮
+        df.drawBtn({
+          G: hg,
+          className: `${d}SettingG`,
+          offsetW: chartW - 50,
+          offsetH: 5,
+          d: icons.settings,
+          color: colors[svgArgs.theme].settingBtnColor,
+          scaleX: 0.15,
+          scaleY: 0.15
+        })
+        // => 添加关闭按钮
+        df.drawBtn({
+          G: hg,
+          className: `${d}CloseG`,
+          offsetW: chartW - 25,
+          offsetH: 5,
+          d: icons.close,
+          color: colors[svgArgs.theme].settingBtnColor,
+          scaleX: 0.1667,
+          scaleY: 0.1667
+        })
+        // => 添加按钮事件接收器 设置按钮与关闭按钮
+        df.drawRect(hg, {
+          class: 'btnEventR',
+          x: chartW - 50,
+          y: 5,
+          width: 15,
+          height: 15,
+          fill: '#fff',
+          opacity: 0
+        })
+        .attr('cursor', 'pointer')
+        .on('mouseover', () => {
+          // => 鼠标放在设置按钮上时 放大按钮
+          d3.select(`.${d}SettingG`)
+            .attr({
+              opacity: 0.5,
+              transform: `translate(${chartW - 50}, ${3.5})`
+            })
+            .select('path')
+            .attr({
+              fill: 'red',
+              transform: `scale(${0.18}, ${0.18})`
+            })
+        })
+        .on('mouseout', () => {
+          // => 鼠标离开设置按钮上时 恢复按钮
+          d3.select(`.${d}SettingG`)
+            .attr({
+              opacity: 1,
+              transform: `translate(${chartW - 50}, ${5})`
+            })
+            .select('path')
+            .attr({
+              fill: colors[svgArgs.theme].settingBtnColor,
+              transform: `scale(${0.15}, ${0.15})`
+            })
+        })
+        .on('click', () => {
+          // => 回调函数 通知弹出设置模态框
+          cb({
+            type: 'setting',
+            data: d
+          })
+        })
+        // => 关闭指示框按钮
+        df.drawRect(hg, {
+          class: 'btnEventR',
+          x: chartW - 25,
+          y: 5,
+          width: 15,
+          height: 15,
+          fill: 'fff',
+          opacity: 0
+        })
+        .attr('cursor', 'pointer')
+        .on('mouseover', () => {
+          // => 鼠标放在关闭按钮上时 放大按钮
+          d3.select(`.${d}CloseG`)
+            .attr({
+              opacity: 0.5,
+              transform: `translate(${chartW - 25}, ${3.5})`
+            })
+            .select('path')
+            .attr({
+              fill: 'red',
+              transform: `scale(${0.2}, ${0.2})`
+            })
+        })
+        .on('mouseout', () => {
+          // => 鼠标离开关闭按钮上时 恢复按钮
+          d3.select(`.${d}CloseG`)
+            .attr({
+              opacity: 1,
+              transform: `translate(${chartW - 25}, ${5})`
+            })
+            .select('path')
+            .attr({
+              fill: colors[svgArgs.theme].settingBtnColor,
+              transform: `scale(${0.1667}, ${0.1667})`
+            })
+        })
+        .on('click', () => {
+          // => 回调函数 通知删除指标框
+          cb({
+            type: 'close',
+            data: d
+          })
+          // => 关闭指标框
+          let index = store.sourceLists.indexOf(d)
+          store.sourceLists.splice(index, 1)
+          this.updateIndicators(store.sourceLists)
+        })
       } else {
         d3.select(`.${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)
+
+        // 更新背景矩形位置
+        d3.select(`.${d}BG`)
+          .attr({
+            x: 0,
+            y: headH,
+            width: chartW,
+            height: unitH - headH,
+            fill: colors[svgArgs.theme].bgColor
+          })
       }
       // => 更新网格位置
       df.drawGrid(d3.select(`.${d}gridG`), svgArgs, 4, 8, {
@@ -266,6 +466,10 @@ export default function (param) {
   this.render = function (data) {
     // => 更新绘图数据
     store.data = Array.isArray(data) ? data : store.data
+    endIndex = store.data.length - 2 === endIndex
+      ? store.data.length - 1
+      : endIndex
+    startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
     dataFilter()
   }
 
@@ -275,36 +479,55 @@ export default function (param) {
   function dataFilter () {
     // => K线数据
     store.Kdata = store.data.slice(startIndex, endIndex)
-    // => MA移动均线数据
-    let max = Math.max(...store.MAParam)
-    // => 数组长度不足以往前推maxMA个数据时从数组开始处获取数据
-    let startIndexb = (startIndex - max) >= 0 ? startIndex - max : 0
-    // => MA计算要多取max个数据
-    let MAdataInit = store.data.slice(startIndexb, endIndex)
-    // => MA均线数据
-    let MAdataCalc = MACalc.caculate(MAdataInit, store.MAParam, 'close')
-    // 清空上一次绘图数据
-    store.MAdata.splice(0, store.MAdata.length)
-    // => 截取绘图所需要的数据
-    MAdataCalc.forEach((d) => {
-      // => 数据长度小于能显示的K线条数时 截取整个数组
-      let startIndexc = (d.length - rectNum) >= 0 ? d.length - rectNum : 0
-      d = d.slice(startIndexc, d.length)
-      store.MAdata.push(d)
-    })
+
+    // =>
+    if (store.MAflag) {
+      d3.selectAll('.MApath').attr('opacity', 1)
+      CaclMA()
+    } else {
+      d3.selectAll('.MApath').attr('opacity', 0)
+    }
+
+    // =>  计算BOLL
+    if (store.BOLLflag) {
+      d3.select('.BOLLchart').attr('opacity', 1)
+      CaclBOLL()
+    } else {
+      d3.select('.BOLLchart').attr('opacity', 0)
+    }
 
     // => 计算其他指标
     store.lists.forEach((d, i) => {
-      df.log('d', d)
       switch (d) {
         case 'VOL': CaclVol(); break
         case 'MACD': CaclMACD(); break
+        case 'VMACD': CaclVMACD(); break
         case 'RSI': CaclRSI(); break
         case 'KDJ': CaclKDJ(); break
         case 'WR': CaclWR(); break
-        case 'BOLL': CaclBOLL(); break
       }
     })
+
+    // => 计算k线 移动均线
+    function CaclMA () {
+      // => MA移动均线数据
+      let max = Math.max(...store.MAParam)
+      // => 数组长度不足以往前推maxMA个数据时从数组开始处获取数据
+      let startIndexb = (startIndex - max) >= 0 ? startIndex - max : 0
+      // => MA计算要多取max个数据
+      let MAdataInit = store.data.slice(startIndexb, endIndex)
+      // => MA均线数据
+      let MAdataCalc = MACalc.caculate(MAdataInit, store.MAParam, 'close')
+      // 清空上一次绘图数据
+      store.MAdata.splice(0, store.MAdata.length)
+      // => 截取绘图所需要的数据
+      MAdataCalc.forEach((d) => {
+        // => 数据长度小于能显示的K线条数时 截取整个数组
+        let startIndexc = (d.length - rectNum) >= 0 ? d.length - rectNum : 0
+        d = d.slice(startIndexc, d.length)
+        store.MAdata.push(d)
+      })
+    }
 
     // => 计算成交量／成交额 移动均线
     function CaclVol () {
@@ -328,18 +551,28 @@ export default function (param) {
         d = d.slice(startIndexc, d.length)
         store.MAVolumedata.push(d)
       })
-      df.log('store.MAVolumedata', store.MAVolumedata)
     }
 
     // 计算MACD
     function CaclMACD () {
-      let calcResult = MACDCalc.caculate(store.data, store.MACDParam)
+      let calcResult = MACDCalc.caculate(store.data, store.MACDParam, 'close')
       // 清楚上次计算结果
       store.MACDdata.splice(0, store.MACDdata.length)
 
       calcResult.forEach((d) => {
         d = d.slice(startIndex, endIndex)
         store.MACDdata.push(d)
+      })
+    }
+    // 计算VMACD
+    function CaclVMACD () {
+      let calcResult = MACDCalc.caculate(store.data, store.VMACDParam, 'volume')
+      // 清楚上次计算结果
+      store.VMACDdata.splice(0, store.VMACDdata.length)
+
+      calcResult.forEach((d) => {
+        d = d.slice(startIndex, endIndex)
+        store.VMACDdata.push(d)
       })
     }
     // 计算RSI
@@ -436,25 +669,28 @@ export default function (param) {
       store.MAdata,
       line
     )
+    // => 绘制BOLL图形
+    if (store.BOLLflag) {
+      renderBOLL(d3.select(`.BOLLchart`))
+    }
     // => 按指标渲染图形
     store.lists.forEach((d, i) => {
-      df.log('d', d)
       switch (d) {
-        case 'VOL': CaclVol(d3.select(`.${d}chart`)); break
-        case 'MACD': CaclMACD(d3.select(`.${d}chart`)); break
-        case 'RSI': CaclRSI(d3.select(`.${d}chart`)); break
-        case 'KDJ': CaclKDJ(d3.select(`.${d}chart`)); break
-        case 'WR': CaclWR(d3.select(`.${d}chart`)); break
-        case 'BOLL': CaclBOLL(d3.select(`.${d}chart`)); break
+        case 'VOL': renderVol(d3.select(`.${d}chart`)); break
+        case 'MACD': renderMACD(d3.select(`.${d}chart`)); break
+        case 'VMACD': renderVMACD(d3.select(`.${d}chart`)); break
+        case 'RSI': renderRSI(d3.select(`.${d}chart`)); break
+        case 'KDJ': renderKDJ(d3.select(`.${d}chart`)); break
+        case 'WR': renderWR(d3.select(`.${d}chart`)); break
       }
     })
     // => 绘制成交量／成交额
-    function CaclVol (G) {
-      df.log('G', G)
+    function renderVol (G) {
       let max = d3.max(store.Kdata, (d) => { return d[indicators1ToggleArrType[toggleArr1index]] })
-      df.log('max==', max)
-      let maxH = unitH - 25 - 5
-      scale.volumeScale = df.linear([0, max], [0, maxH])
+
+      let maxH = unitH - 25
+      scale.volumeScale = df.linear([0, max], [0, maxH - 5])
+      // => 绘制成交量成交额柱状图
       df.drawRectChart({
         G: G,
         data: store.Kdata,
@@ -487,26 +723,159 @@ export default function (param) {
           }
         }
       })
+      // => 曲线生产器
+      let line = df.kLine({
+        rectWidth: rectWidth,
+        rectSpace: rectSpace,
+        scaleY: scale.volumeScale
+      })
+      // => 绘制成交量／成交额 移动均线
+      df.drawPolyline(
+        G,
+        {
+          class: 'VolumeMApath',
+          fill: 'none',
+          'stroke-width': 1,
+          'stroke': (d, i) => {
+            return colors[svgArgs.theme].curveColor[i]
+          }
+        },
+        store.MAVolumedata,
+        line
+      )
     }
     // => 绘制MACD
-    function CaclMACD (G) {
-
+    function renderMACD (G) {
+      _MACD(G, 'MACD', store.MACDdata)
+    }
+    // => 绘制VMACD
+    function renderVMACD (G) {
+      _MACD(G, 'VMACD', store.VMACDdata)
+    }
+    function _MACD (G, type, data) {
+      let minMACDY0 = d3.min(data[0], (d) => { return d.value })
+      let maxMACDY0 = d3.max(data[0], (d) => { return d.value })
+      let minMACDY1 = d3.min(data[1], (d) => { return d.value })
+      let maxMACDY1 = d3.max(data[1], (d) => { return d.value })
+      let minMACDY2 = d3.min(data[2], (d) => { return d.value })
+      let maxMACDY2 = d3.max(data[2], (d) => { return d.value })
+      let max = Math.max(
+        Math.abs(minMACDY0),
+        Math.abs(maxMACDY0),
+        Math.abs(minMACDY1),
+        Math.abs(maxMACDY1),
+        Math.abs(minMACDY2),
+        Math.abs(maxMACDY2)
+      ).toFixed(2)
+      // => macd比例尺
+      let maxH = unitH - 25
+      scale[`${type}scale`] = df.linear([-max, max], [5, maxH - 5])
+      let lineScale = df.linear([-max, max], [maxH - 5, 5])
+      // => 曲线生成器
+      let line = df.kLine({
+        rectWidth: rectWidth,
+        rectSpace: rectSpace,
+        scaleY: lineScale
+      })
+      // => MACD柱状图
+      df.drawRectChart({
+        G: G,
+        data: data[0],
+        className: 'volumeR',
+        x: (d, i) => {
+          return rectSpace + i * (rectWidth + rectSpace)
+        },
+        y: (d, i) => {
+          if (d.value >= 0) {
+            return maxH - scale[`${type}scale`](d.value)
+          } else {
+            return maxH - scale[`${type}scale`](0)
+          }
+        },
+        width: rectWidth,
+        height: (d, i) => {
+          if (d.value >= 0) {
+            return scale[`${type}scale`](d.value) - scale[`${type}scale`](0)
+          } else {
+            return scale[`${type}scale`](0) - scale[`${type}scale`](d.value)
+          }
+        },
+        fill: (d, i) => {
+          if (d.value >= 0) {
+            return colors[svgArgs.theme].kRed
+          } else {
+            return colors[svgArgs.theme].kGreen
+          }
+        }
+      })
+      // => 绘制MACD DIF, DEA曲线
+      df.drawPolyline(
+        G,
+        {
+          class: `${type}path`,
+          fill: 'none',
+          'stroke-width': 1,
+          'stroke': (d, i) => {
+            return colors[svgArgs.theme].curveColor[i]
+          }
+        },
+        data.slice(1),
+        line
+      )
     }
     // => 绘制RSI
-    function CaclRSI (G) {
-
+    function renderRSI (G) {
+      renderCurve(G, store.RSIdata, `RSIpath`, `RSIscale`)
     }
     // => 绘制KDJ
-    function CaclKDJ (G) {
-
+    function renderKDJ (G) {
+      renderCurve(G, store.KDJdata, `KDJpath`, `KDJscale`)
     }
     // => 绘制WR
-    function CaclWR (G) {
-
+    function renderWR (G) {
+      renderCurve(G, store.WRdata, `WRpath`, `WRscale`)
     }
     // => 绘制BOLL
-    function CaclBOLL (G) {
-
+    function renderBOLL (G) {
+      renderCurve(G, store.BOLLdata, `BOLLpath`, `BOLLscale`)
+    }
+    // => RSI/KDJ/WR
+    function renderCurve (G, data, className, scaleProp) {
+      if (scaleProp === 'BOLLscale') {
+        scale[scaleProp] = scale.priceScale
+      } else {
+        let min = d3.min(data[0], (d) => { return d.value })
+        let max = d3.max(data[0], (d) => { return d.value })
+        data.forEach((d, i) => {
+          let minY = d3.min(d, (d) => { return d.value })
+          let maxY = d3.max(d, (d) => { return d.value })
+          min = minY < min ? minY : min
+          max = maxY > max ? maxY : max
+        })
+        // => 比例尺
+        let maxH = unitH - 25
+        scale[scaleProp] = df.linear([min, max], [maxH - 5, 5])
+      }
+      // => 曲线生成器
+      let line = df.kLine({
+        rectWidth: rectWidth,
+        rectSpace: rectSpace,
+        scaleY: scale[scaleProp]
+      })
+      // => 绘制MACD DIF, DEA曲线
+      df.drawPolyline(
+        G,
+        {
+          class: className,
+          fill: 'none',
+          'stroke-width': 1,
+          'stroke': (d, i) => {
+            return colors[svgArgs.theme].curveColor[i]
+          }
+        },
+        data,
+        line
+      )
     }
   }
 }

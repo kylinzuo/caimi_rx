@@ -466,7 +466,7 @@ export function drawBox ({G, gClassName, w, h, color}) {
  * G => 容器
  */
 export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scaleY}) {
-  G.append('g')
+  return G.append('g')
     .attr({
       class: className,
       transform: `translate(${offsetW}, ${offsetH})`

@@ -13,15 +13,16 @@
 import DrawKChart from './kchart/render.k.chart'
 
 export default class RenderKChart {
-  constructor (param) {
+  constructor (param, cb) {
     this.param = param
+    this.cb = cb
     this.renderChart()
   }
   /**
    * 渲染视图
    */
   renderChart () {
-    this.kChart = new DrawKChart(this.param)
+    this.kChart = new DrawKChart(this.param, this.cb)
   }
   /**
    * 数据更新视图
