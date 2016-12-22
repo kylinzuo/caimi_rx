@@ -77,7 +77,7 @@ export default {
 <style scoped>
 .kChart {
   width: 100%;
-  height: 90%;
+  height: 88%;
   /*height: 406px;*/
   border: 1px solid #ccc;
   background-color: #fff;

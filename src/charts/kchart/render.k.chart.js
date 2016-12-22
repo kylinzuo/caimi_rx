@@ -32,6 +32,7 @@ let store = {
   KDJdata: [], // => KDJ绘图数据
   WRdata: [], // => WR绘图数据
   BOLLdata: [], // => BOLL绘图数据
+  period: 'Day1', // => 绘图周期
   MAParam: [5, 10, 20, 30, 60], // => MA移动均线设置参数
   MAVolumeParam: [5, 10, 20],
   MABalanceParam: [5, 10, 20],
@@ -56,6 +57,8 @@ let headH = 25
 let khGridNums = 6 // => K线区
 let ihGridNums = 4 // => 指标区
 let vGridNums = 8
+// => 时间坐标轴数据
+let timeArr = []
 
 // => 存储所有需要用到的比例尺 便于交互时取用
 let scale = {}
@@ -88,6 +91,7 @@ export default function (param, cb) {
   store.KDJParam = param.KDJParam || store.KDJParam
   store.WRParam = param.WRParam || store.WRParam
   store.BOLLParam = param.BOLLParam || store.BOLLParam
+  store.period = store.period || param.period
 
   /**
    * rectWidth => k线实体默认宽度
@@ -97,7 +101,7 @@ export default function (param, cb) {
   let rectWidth = 8
   let rectNum = Math.floor(chartW / (2 + rectWidth))
   let rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
-
+  df.log('rectNum', rectNum)
   // => 定义两个指向原始数据的指针 每次绘图提取出指针指向范围内的数据
   let endIndex = store.data.length
   let startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
@@ -109,7 +113,7 @@ export default function (param, cb) {
   let bgG = svg.append('g')
     .attr('class', 'bgG')
   df.drawRect(bgG, {
-    'class': 'bgG',
+    'class': 'bgR',
     'x': 0,
     'y': 0,
     'width': svgArgs.width,
@@ -165,7 +169,15 @@ export default function (param, cb) {
         ? 6
         : 4
       : 2
-    vGridNums = Math.max(Math.floor(chartW / 100), 2)
+    let unitW = 150
+    let tempVGridNums = chartW / unitW > Math.floor(chartW / unitW) + 0.5
+      ? Math.floor(chartW / unitW)
+      : Math.floor(chartW / unitW) - 1
+
+    vGridNums = Math.max(tempVGridNums, 1)
+    df.log('===', chartW / unitW)
+    df.log(vGridNums)
+
     // => 添加k线区容器
     if (!document.querySelector('.KHeadG')) {
       let KG = svgG.append('g')
@@ -216,13 +228,29 @@ export default function (param, cb) {
       df.drawBtn({
         G: KHeadG,
         className: 'kSettingG',
-        offsetW: chartW - headH,
+        offsetW: chartW - 25,
         offsetH: 5,
         d: icons.settings,
         color: colors[svgArgs.theme].settingBtnColor,
         scaleX: 0.15,
         scaleY: 0.15
       })
+    } else {
+      // 更新数据
+      d3.select('.KHeadG')
+        .select('.head')
+        .attr('width', chartW)
+      d3.select('.KHeadG')
+        .select('.kSettingG')
+        .attr('transform', `translate(${chartW - 25}, ${5})`)
+      d3.select('svg')
+        .attr('width', svgArgs.width + svgArgs.margin.left + svgArgs.margin.right)
+        .attr('height', svgArgs.height + svgArgs.margin.top + svgArgs.margin.bottom)
+      d3.select('.bgR')
+        .attr('width', svgArgs.width)
+        .attr('height', svgArgs.height)
+      d3.select('.floorG')
+        .attr('transform', `translate(0, ${chartH})`)
     }
     // => 判断k线部分设置按钮是否需要显示
     d3.select('.kSettingG')
@@ -284,7 +312,16 @@ export default function (param, cb) {
     })
 
     // => 更新网格位置
-    df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, vGridNums, {
+    df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, 1, {
+      width: chartW,
+      height: kChartH - 25,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      stroke: colors[svgArgs.theme].gridGray
+    })
+    df.drawkGrid(d3.select('.KgridG'), vGridNums, rectWidth, rectSpace, {
       width: chartW,
       height: kChartH - 25,
       top: 0,
@@ -365,7 +402,7 @@ export default function (param, cb) {
         })
         // => 添加按钮事件接收器 设置按钮与关闭按钮
         df.drawRect(hg, {
-          class: 'btnEventR',
+          class: 'btnEventRSetting',
           x: chartW - 50,
           y: 5,
           width: 15,
@@ -409,7 +446,7 @@ export default function (param, cb) {
         })
         // => 关闭指示框按钮
         df.drawRect(hg, {
-          class: 'btnEventR',
+          class: 'btnEventRClose',
           x: chartW - 25,
           y: 5,
           width: 15,
@@ -468,9 +505,35 @@ export default function (param, cb) {
             height: unitH - headH,
             fill: colors[svgArgs.theme].bgColor
           })
+        // 更新头部宽度
+        d3.select(`.${d}HeadG`)
+          .select('.head')
+          .attr('width', chartW)
+        // 更新按钮位置
+        d3.select(`.${d}HeadG`)
+          .select(`.${d}SettingG`)
+          .attr('transform', `translate(${chartW - 50},${5})`)
+        d3.select(`.${d}HeadG`)
+          .select(`.${d}CloseG`)
+          .attr('transform', `translate(${chartW - 25},${5})`)
+        d3.select(`.${d}HeadG`)
+          .select(`.btnEventRSetting`)
+          .attr('x', chartW - 50)
+        d3.select(`.${d}HeadG`)
+          .select(`.btnEventRClose`)
+          .attr('x', chartW - 25)
       }
       // => 更新网格位置
-      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, vGridNums, {
+      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, 1, {
+        width: chartW,
+        height: unitH - 25 > 1 ? unitH - 25 : 1,
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        stroke: colors[svgArgs.theme].gridGray
+      })
+      df.drawkGrid(d3.select(`.${d}gridG`), vGridNums, rectWidth, rectSpace, {
         width: chartW,
         height: unitH - 25 > 1 ? unitH - 25 : 1,
         top: 0,
@@ -485,6 +548,18 @@ export default function (param, cb) {
   }
 
   this.updateIndicators(param.lists)
+  window.addEventListener('resize', () => {
+    df.log('hello resize')
+    // => 获取svg尺寸
+    svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
+    chartW = svgArgs.width - lw - rw
+    chartH = svgArgs.height - th - bh
+    rectNum = Math.floor(chartW / (2 + rectWidth))
+    rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+    endIndex = store.data.length - 1
+    startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
+    this.updateIndicators(param.lists)
+  })
 
   // => socket 推送数据时更新k线图
   this.render = function (data) {
@@ -640,6 +715,20 @@ export default function (param, cb) {
       })
     }
 
+    // => 获取坐标轴时间
+    timeArr = []
+    let tIndex = Math.ceil(chartW / vGridNums / (rectWidth + rectSpace))
+    timeArr.push(store.Kdata[0].time)
+    for (let i = 1; i < vGridNums; i++) {
+      if (i * tIndex < store.Kdata.length) {
+        timeArr.push(store.Kdata[i * tIndex - 1].time)
+      } else {
+        break
+      }
+    }
+    timeArr.push(store.Kdata[store.Kdata.length - 1].time)
+    df.log('timeArr', timeArr)
+
     // => 绘制图形
     renderChart()
   }
@@ -697,6 +786,40 @@ export default function (param, cb) {
     if (store.BOLLflag) {
       renderBOLL(d3.select(`.BOLLchart`))
     }
+    let tIndex = Math.ceil(chartW / vGridNums / (rectWidth + rectSpace))
+    // => 更新坐标轴
+    df.drawTexts(d3.select('.floorG'), 'xtime', timeArr, {
+      class: 'xtime',
+      'font-family': 'PingFangSC-Regular',
+      'font-size': 12,
+      'text-anchor': (d, i) => {
+        if (i === 0) {
+          return 'start'
+        } else if (i === timeArr.length - 1) {
+          return 'end'
+        } else {
+          return 'middle'
+        }
+      },
+      stroke: 'none',
+      fill: colors[svgArgs.theme].indexTextColor,
+      x: (d, i) => {
+        return i !== 0
+          ? i !== timeArr.length - 1
+            ? (i * tIndex - 1) * (rectWidth + rectSpace)
+            : chartW
+          : 0
+      },
+      y: 12
+    }, (d, i) => {
+      if (store.period === 'Day1') {
+        return i === 0
+          ? df.formatTime('%Y/%m/%d')(new Date(d))
+          : df.formatTime('%m/%d')(new Date(d))
+      } else {
+        return df.formatTime('%m/%d')(new Date(d))
+      }
+    })
     // => 按指标渲染图形
     store.lists.forEach((d, i) => {
       switch (d) {

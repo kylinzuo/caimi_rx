@@ -1,7 +1,10 @@
 <template>
   <div id="app">
     <!--<Tschart></Tschart>-->
-    <Kchart></Kchart>
+    <!--<Kchart></Kchart>-->
+    <router-link to='/'>tsChart</router-link>
+    <router-link to='/k'>kChart</router-link>
+    <router-view></router-view>
   </div>
 </template>
 
@@ -27,5 +30,9 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   height: 100%;
+}
+a {
+  font-size: 18px;
+  text-decoration: none;
 }
 </style>

@@ -44,6 +44,11 @@ export let zh = d3.locale({
   shortMonths: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
 })
 
+// 格式化时间样式
+export function timerStyle () {
+  return {}
+}
+
 // 格式化时间
 export function formatTime (style) {
   return d3.time.format(style)
@@ -480,6 +485,48 @@ export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scal
 }
 
 /**
+ * 绘制k线网格之中间的竖直线 => 需要每根竖直线正好位于相近k线中间
+ */
+export function drawkGrid (G, vNums, rectW, rectS, gridGargs) {
+  let vArr = getSerialArr(vNums)
+  let w = gridGargs.width
+  let h = gridGargs.height
+  let unitW = w / vNums
+  let x = Math.ceil(unitW / (rectW + rectS)) * (rectW + rectS)
+  // 网格垂直分隔线
+  let update = G.selectAll('.kverticalLines')
+    .data(vArr)
+  let enter = update.enter()
+  let exit = update.exit()
+  update
+    .attr('stroke', (d, i) => {
+      if (i === 0 || i === vNums) {
+        return 'none'
+      } else {
+        return gridGargs.stroke
+      }
+    })
+    .attr('d', function (d, i) {
+      return `M${i * x - rectW / 2},0L${i * x - rectW / 2},${h}`
+    })
+  enter.append('path')
+    .attr('class', 'kverticalLines')
+    .attr('stroke', (d, i) => {
+      if (i === 0 || i === vNums) {
+        return 'none'
+      } else {
+        return gridGargs.stroke
+      }
+    })
+    .attr('stroke-Width', 1)
+    .attr('fill', 'none')
+    .attr('d', function (d, i) {
+      return `M${i * x - rectW / 2},0L${i * x - rectW / 2},${h}`
+    })
+  exit.remove()
+}
+
+/**
  * 绘制K线上下引线
  * G => 容器
  */
@@ -688,5 +735,22 @@ export function drawRectChart ({G, data, className, x, y, width, height, fill}) 
     .attr('fill', fill)
     .on('click', (d) => { console.log(d) })
 
+  exit.remove()
+}
+
+/**
+ * 绘制文本
+ */
+export function drawTexts (G, className, texts, textArgs, fn) {
+  let update = G.selectAll(`.${className}`)
+    .data(texts)
+  let enter = update.enter()
+  let exit = update.exit()
+
+  update.attr(textArgs)
+    .text(fn)
+  enter.append('text')
+    .attr(textArgs)
+    .text(fn)
   exit.remove()
 }
