@@ -47,14 +47,18 @@ let store = {
 // => 设置默认最多能显示哪些指标 如果增加新的指标时需要在此添加新的指标名称
 let indicatorsLists = ['VOL', 'MACD', 'RSI', 'KDJ', 'VMACD', 'WR']
 
-// => k线区高度 与 各指标区高度
+// => k线区高度&各指标区高度
 let kChartH
 let unitH
 // => 每一区域头部高度
 let headH = 25
+// => 水平网格数量&竖直网格数量
+let khGridNums = 6 // => K线区
+let ihGridNums = 4 // => 指标区
+let vGridNums = 8
 
 // => 存储所有需要用到的比例尺 便于交互时取用
-let scale = []
+let scale = {}
 
 // => 成交量／成交额 可切换指标
 let indicators1ToggleArr = ['成交量', '成交额']
@@ -154,11 +158,31 @@ export default function (param, cb) {
       : chartH
     unitH = store.lists.length !== 0 ? (chartH - kChartH) / store.lists.length : 0
 
+    // => 计算k线区水平网格数量
+    khGridNums = Math.max(Math.floor((kChartH - headH) / 30), 3)
+    ihGridNums = (unitH - headH) > 30 * 3
+      ? (unitH - headH) > 30 * 5
+        ? 6
+        : 4
+      : 2
+    vGridNums = Math.max(Math.floor(chartW / 100), 2)
     // => 添加k线区容器
     if (!document.querySelector('.KHeadG')) {
       let KG = svgG.append('g')
         .attr('class', 'KG')
         .attr('transform', `translate(0, 0)`)
+
+      // => 底部时间轴&滑动条容器
+      let floorG = svgG.append('g')
+        .attr('class', 'floorG')
+        .attr('transform', `translate(0, ${chartH})`)
+      df.drawRect(floorG, {
+        x: 0,
+        y: 0,
+        width: chartW,
+        height: 46,
+        fill: colors[svgArgs.theme].bgColor
+      })
 
       // => 添加网格容器
       KG.append('g')
@@ -260,7 +284,7 @@ export default function (param, cb) {
     })
 
     // => 更新网格位置
-    df.drawGrid(d3.select('.KgridG'), svgArgs, 6, 8, {
+    df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, vGridNums, {
       width: chartW,
       height: kChartH - 25,
       top: 0,
@@ -446,7 +470,7 @@ export default function (param, cb) {
           })
       }
       // => 更新网格位置
-      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, 4, 8, {
+      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, vGridNums, {
         width: chartW,
         height: unitH - 25 > 1 ? unitH - 25 : 1,
         top: 0,
