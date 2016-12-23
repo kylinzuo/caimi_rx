@@ -137,7 +137,9 @@ export default function (param, cb) {
     // => 差集 找出哪些指标被去除并将其从视图中删除
     store.lists.forEach((d) => {
       if (!(new Set(store.sourceLists)).has(d)) {
+        // => 删除已经不在切换列表被选中的指标容器
         d3.select(`.${d}G`).remove()
+        d3.select(`.${d}EventR`).remove()
       }
     })
 
@@ -241,6 +243,47 @@ export default function (param, cb) {
         scaleX: 0.15,
         scaleY: 0.15
       })
+
+      // => k线区 事件交互容器
+      df.drawRect(KG, {
+        class: 'kEventR',
+        x: 0,
+        y: 0,
+        width: chartW,
+        height: kChartH - headH,
+        fill: 'none',
+        stroke: 'red',
+        transform: `translate(0,${headH})`,
+        'pointer-events': 'all',
+        cursor: 'crosshair'
+      })
+      .call(df.zoom([0.125, 3], () => {
+        df.log('zoom', d3.event.scale)
+
+        rectWidth = d3.event.scale * 8
+        rectNum = Math.floor(chartW / (2 + rectWidth))
+        rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+        startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
+        // =>
+        dataFilter()
+      }))
+      .call(df.drag(() => {
+        df.log(d3.event.x)
+        df.log(d3.event.y - headH)
+      }))
+      .on('mousedown', function () {
+        d3.select(this).attr('cursor', 'move')
+      })
+      .on('mouseup', function () {
+        d3.select(this).attr('cursor', 'crosshair')
+      })
+      .on('click', () => {
+        df.log('click kEventR')
+      })
+      .on('mousemove', function () {
+        // df.log(d3.select(this))
+        // df.log('mouse', d3.mouse(this))
+      })
     } else {
       // 更新数据
       d3.select('.KHeadG')
@@ -257,6 +300,13 @@ export default function (param, cb) {
         .attr('height', svgArgs.height)
       d3.select('.floorG')
         .attr('transform', `translate(0, ${chartH})`)
+
+      d3.select('.kEventR')
+        .attr({
+          width: chartW,
+          height: kChartH - headH,
+          transform: `translate(0,${headH})`
+        })
     }
     // => 判断k线部分设置按钮是否需要显示
     d3.select('.kSettingG')
@@ -315,26 +365,6 @@ export default function (param, cb) {
         type: 'setting',
         data: store.MAflag ? 'MA' : 'BOLL'
       })
-    })
-
-    // => 更新网格位置
-    df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, 1, {
-      width: chartW,
-      height: kChartH - 25,
-      top: 0,
-      bottom: 0,
-      left: 0,
-      right: 0,
-      stroke: colors[svgArgs.theme].gridGray
-    })
-    df.drawkGrid(d3.select('.KgridG'), vGridNums, rectWidth, rectSpace, {
-      width: chartW,
-      height: kChartH - 25,
-      top: 0,
-      bottom: 0,
-      left: 0,
-      right: 0,
-      stroke: colors[svgArgs.theme].gridGray
     })
 
     // => 添加指标区容器
@@ -503,6 +533,29 @@ export default function (param, cb) {
           store.sourceLists.splice(index, 1)
           this.updateIndicators(store.sourceLists)
         })
+
+        // => 指标区 事件交互容器
+        df.drawRect(g, {
+          class: `${d}EventR`,
+          x: 0,
+          y: 0,
+          width: chartW,
+          height: unitH - headH,
+          stroke: 'red',
+          fill: 'none',
+          transform: `translate(0,${headH})`,
+          'pointer-events': 'all',
+          cursor: 'crosshair'
+        })
+        .on('mousedown', function () {
+          d3.select(this).attr('cursor', 'move')
+        })
+        .on('mouseup', function () {
+          d3.select(this).attr('cursor', 'crosshair')
+        })
+        .on('click', () => {
+          df.log(`click ${d}EventR`)
+        })
       } else {
         d3.select(`.${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)
@@ -533,26 +586,15 @@ export default function (param, cb) {
         d3.select(`.${d}HeadG`)
           .select(`.btnEventRClose`)
           .attr('x', chartW - 25)
+
+        // => 更新事件接收容器位置
+        d3.select(`.${d}EventR`)
+          .attr({
+            width: chartW,
+            height: unitH - headH,
+            transform: `translate(0,${headH})`
+          })
       }
-      // => 更新网格位置
-      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, 1, {
-        width: chartW,
-        height: unitH - 25 > 1 ? unitH - 25 : 1,
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        stroke: colors[svgArgs.theme].gridGray
-      })
-      df.drawkGrid(d3.select(`.${d}gridG`), vGridNums, rectWidth, rectSpace, {
-        width: chartW,
-        height: unitH - 25 > 1 ? unitH - 25 : 1,
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        stroke: colors[svgArgs.theme].gridGray
-      })
     })
 
     dataFilter()
@@ -588,8 +630,7 @@ export default function (param, cb) {
   function dataFilter () {
     // => K线数据
     store.Kdata = store.data.slice(startIndex, endIndex)
-
-    // =>
+    // => 判断是否显示均线
     if (store.MAflag) {
       d3.selectAll('.MApath').attr('opacity', 1)
       CaclMA()
@@ -746,6 +787,25 @@ export default function (param, cb) {
    * 绘制图形
    */
   function renderChart () {
+    // => 更新网格位置
+    df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, 1, {
+      width: chartW,
+      height: kChartH - 25,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      stroke: colors[svgArgs.theme].gridGray
+    })
+    df.drawkGrid(d3.select('.KgridG'), vGridNums, rectWidth, rectSpace, {
+      width: chartW,
+      height: kChartH - 25,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      stroke: colors[svgArgs.theme].gridGray
+    })
     // => k线比例尺
     let minPrice = d3.min(store.Kdata, (d) => { return d.low })
     let maxPrice = d3.max(store.Kdata, (d) => { return d.high })
@@ -799,8 +859,25 @@ export default function (param, cb) {
     // => 更新坐标轴
     df.drawTexts(d3.select('.floorG'), 'xtime', timeArr, {
       class: 'xtime',
+      x: (d, i) => {
+        return i !== 0
+          ? i !== timeArr.length - 1
+            ? (i * tIndex - 1) * (rectWidth + rectSpace)
+            : store.Kdata.length * (rectWidth + rectSpace)
+          : 0
+      },
+      y: 12,
       'font-family': 'PingFangSC-Regular',
       'font-size': 12,
+      stroke: 'none',
+      fill: colors[svgArgs.theme].indexTextColor,
+      opacity: (d, i) => {
+        return i === timeArr.length - 1
+          ? store.Kdata.length * (rectWidth + rectSpace) < chartW
+            ? 0
+            : 1
+          : 1
+      },
       'text-anchor': (d, i) => {
         if (i === 0) {
           return 'start'
@@ -809,17 +886,7 @@ export default function (param, cb) {
         } else {
           return 'middle'
         }
-      },
-      stroke: 'none',
-      fill: colors[svgArgs.theme].indexTextColor,
-      x: (d, i) => {
-        return i !== 0
-          ? i !== timeArr.length - 1
-            ? (i * tIndex - 1) * (rectWidth + rectSpace)
-            : chartW
-          : 0
-      },
-      y: 12
+      }
     }, (d, i) => {
       if (['Day1', 'Day7', 'Day30'].indexOf(store.period) > -1) {
         return i === 0
@@ -867,6 +934,26 @@ export default function (param, cb) {
 
     // => 按指标渲染图形
     store.lists.forEach((d, i) => {
+      // => 更新网格位置
+      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, 1, {
+        width: chartW,
+        height: unitH - 25 > 1 ? unitH - 25 : 1,
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        stroke: colors[svgArgs.theme].gridGray
+      })
+      df.drawkGrid(d3.select(`.${d}gridG`), vGridNums, rectWidth, rectSpace, {
+        width: chartW,
+        height: unitH - 25 > 1 ? unitH - 25 : 1,
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        stroke: colors[svgArgs.theme].gridGray
+      })
+      // => 渲染／更新图形
       switch (d) {
         case 'VOL': renderVol(d3.select(`.${d}chart`), d); break
         case 'MACD': renderMACD(d3.select(`.${d}chart`), d); break
@@ -936,6 +1023,10 @@ export default function (param, cb) {
         store.MAVolumedata,
         line
       )
+      d3.selectAll('.VolumeMApath').attr({
+        'opacity': store.MAVOLflag ? 1 : 0
+      })
+
       // => 更新成交量／成交额 纵坐标轴
       let range = []
       let scaleHeight = []

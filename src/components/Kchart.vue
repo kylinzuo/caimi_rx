@@ -39,8 +39,8 @@ export default {
       symbol: '000001.SS',
       period: 'Day1'
     }, data => {
-      filterData = data.slice(0, 200)
-      newData = data.slice(200)
+      filterData = data.slice(0, 50)
+      newData = data.slice(50)
       param.data = filterData // 绘图数据
       param.period = 'Day1'
       param.lists = this.lists
@@ -57,8 +57,18 @@ export default {
       let index = this.lists.indexOf(val)
       if (index >= 0) {
         this.lists.splice(index, 1)
+        if (val === 'VOL') {
+          if (this.lists.indexOf('MA(VOL)') >= 0) {
+            this.lists.splice(this.lists.indexOf('MA(VOL)'), 1)
+          }
+        }
       } else {
         this.lists.push(val)
+        if (val === 'MA(VOL)') {
+          if (this.lists.indexOf('VOL') < 0) {
+            this.lists.push('VOL')
+          }
+        }
       }
       this.tsChart.updateIndicators(Object.assign([], this.lists))
     },

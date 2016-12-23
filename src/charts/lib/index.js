@@ -761,3 +761,24 @@ export function drawTexts (G, className, texts, textArgs, fn) {
     .text(fn)
   exit.remove()
 }
+
+/**
+ * 定义缩放事件
+ * scaleExtent 用于设置最小和最大的缩放比例
+ * d3.event.translate 是平移的坐标值
+ * d3.event.scale 是缩放的值
+ */
+export function zoom (range, fn) {
+  return d3.behavior.zoom()
+    .scaleExtent(range)
+    .on('zoom', fn)
+}
+
+/**
+ * 定义拖拽事件
+ * d3.event.x d3.event.y => 当前鼠标的位置
+ */
+export function drag (fn) {
+  return d3.behavior.drag()
+    .on('drag', fn)
+}
