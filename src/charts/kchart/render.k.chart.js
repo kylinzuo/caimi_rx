@@ -63,6 +63,9 @@ let timeArr = []
 // => 存储所有需要用到的比例尺 便于交互时取用
 let scale = {}
 
+// => 坐标轴dom数据, 坐标轴实时更新需要该数据
+let axis = {}
+
 // => 成交量／成交额 可切换指标
 let indicators1ToggleArr = ['成交量', '成交额']
 let indicators1ToggleArrType = ['volume', 'balance']
@@ -101,7 +104,7 @@ export default function (param, cb) {
   let rectWidth = 8
   let rectNum = Math.floor(chartW / (2 + rectWidth))
   let rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
-  df.log('rectNum', rectNum)
+
   // => 定义两个指向原始数据的指针 每次绘图提取出指针指向范围内的数据
   let endIndex = store.data.length
   let startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
@@ -175,14 +178,17 @@ export default function (param, cb) {
       : Math.floor(chartW / unitW) - 1
 
     vGridNums = Math.max(tempVGridNums, 1)
-    df.log('===', chartW / unitW)
-    df.log(vGridNums)
 
     // => 添加k线区容器
     if (!document.querySelector('.KHeadG')) {
       let KG = svgG.append('g')
         .attr('class', 'KG')
         .attr('transform', `translate(0, 0)`)
+
+      // => k线区 纵坐标轴容器
+      axis[`KY`] = KG.append('g')
+        .attr('class', 'priceYaxisG')
+        .attr('transform', `translate(${0},${headH})`)
 
       // => 底部时间轴&滑动条容器
       let floorG = svgG.append('g')
@@ -347,6 +353,11 @@ export default function (param, cb) {
           height: unitH - headH,
           fill: colors[svgArgs.theme].bgColor
         })
+
+        // => 指标区 纵坐标容器
+        axis[`${d}Y`] = g.append('g')
+        .attr('class', `${d}YaxisG`)
+        .attr('transform', `translate(${0},${headH})`)
 
         // 添加网格容器
         g.append('g')
@@ -549,7 +560,6 @@ export default function (param, cb) {
 
   this.updateIndicators(param.lists)
   window.addEventListener('resize', () => {
-    df.log('hello resize')
     // => 获取svg尺寸
     svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
     chartW = svgArgs.width - lw - rw
@@ -727,7 +737,6 @@ export default function (param, cb) {
       }
     }
     timeArr.push(store.Kdata[store.Kdata.length - 1].time)
-    df.log('timeArr', timeArr)
 
     // => 绘制图形
     renderChart()
@@ -812,31 +821,68 @@ export default function (param, cb) {
       },
       y: 12
     }, (d, i) => {
-      if (store.period === 'Day1') {
+      if (['Day1', 'Day7', 'Day30'].indexOf(store.period) > -1) {
         return i === 0
-          ? df.formatTime('%Y/%m/%d')(new Date(d))
-          : df.formatTime('%m/%d')(new Date(d))
+          ? df.formatTime(df.timerStyle.Ymd)(new Date(d))
+          : df.formatTime(df.timerStyle.md)(new Date(d))
       } else {
-        return df.formatTime('%m/%d')(new Date(d))
+        return i === 0
+          ? df.formatTime(df.timerStyle.YmdHM)(new Date(d))
+          : df.formatTime(df.timerStyle.mdHM)(new Date(d))
       }
     })
+
+    // => 更新k线区纵坐标轴
+    let range = []
+    let scaleHeight = []
+    let gridH = (kChartH - headH) / khGridNums
+    let diff = scale.priceScale.invert(0) - scale.priceScale.invert(kChartH - headH)
+    df.getSerialArr(khGridNums)
+      .forEach((d, i) => {
+        range = [...range, scale.priceScale.invert(kChartH - headH) + (diff / khGridNums * i)]
+        scaleHeight = [...scaleHeight, i * gridH]
+      })
+    // 反转数组
+    scaleHeight.reverse()
+    let yOrdinalScale = df.ordinal(range, scaleHeight)
+    axis[`KY`].attr('class', 'y axis priceYaxis')
+      .call(
+        df.axis(yOrdinalScale, 'left')
+      )
+      .selectAll('text')
+      .attr({
+        'font-family': 'PingFangSC-Medium',
+        'font-size': 12,
+        'text-anchor': 'end',
+        stroke: 'none',
+        fill: colors[svgArgs.theme].indexTextColor,
+        y: (d, i) => {
+          return i !== 0
+            ? i !== khGridNums
+              ? 0
+              : 6
+            : -6
+        }
+      })
+
     // => 按指标渲染图形
     store.lists.forEach((d, i) => {
       switch (d) {
-        case 'VOL': renderVol(d3.select(`.${d}chart`)); break
-        case 'MACD': renderMACD(d3.select(`.${d}chart`)); break
-        case 'VMACD': renderVMACD(d3.select(`.${d}chart`)); break
-        case 'RSI': renderRSI(d3.select(`.${d}chart`)); break
-        case 'KDJ': renderKDJ(d3.select(`.${d}chart`)); break
-        case 'WR': renderWR(d3.select(`.${d}chart`)); break
+        case 'VOL': renderVol(d3.select(`.${d}chart`), d); break
+        case 'MACD': renderMACD(d3.select(`.${d}chart`), d); break
+        case 'VMACD': renderVMACD(d3.select(`.${d}chart`), d); break
+        case 'RSI': renderRSI(d3.select(`.${d}chart`), d); break
+        case 'KDJ': renderKDJ(d3.select(`.${d}chart`), d); break
+        case 'WR': renderWR(d3.select(`.${d}chart`), d); break
       }
     })
     // => 绘制成交量／成交额
-    function renderVol (G) {
+    function renderVol (G, d) {
       let max = d3.max(store.Kdata, (d) => { return d[indicators1ToggleArrType[toggleArr1index]] })
 
       let maxH = unitH - 25
       scale.volumeScale = df.linear([0, max], [0, maxH - 5])
+      scale.volumePathScale = df.linear([0, max], [maxH - 5, 0])
       // => 绘制成交量成交额柱状图
       df.drawRectChart({
         G: G,
@@ -874,7 +920,7 @@ export default function (param, cb) {
       let line = df.kLine({
         rectWidth: rectWidth,
         rectSpace: rectSpace,
-        scaleY: scale.volumeScale
+        scaleY: scale.volumePathScale
       })
       // => 绘制成交量／成交额 移动均线
       df.drawPolyline(
@@ -890,22 +936,53 @@ export default function (param, cb) {
         store.MAVolumedata,
         line
       )
+      // => 更新成交量／成交额 纵坐标轴
+      let range = []
+      let scaleHeight = []
+      let gridH = (unitH - headH) / ihGridNums
+      df.getSerialArr(ihGridNums)
+        .forEach((d, i) => {
+          range = i === 0 ? ['', ...range] : [...range, scale.volumeScale.invert(unitH - headH) / ihGridNums * i]
+          scaleHeight = [...scaleHeight, i * gridH]
+        })
+      // 反转数组
+      scaleHeight.reverse()
+      let yOrdinalScale = df.ordinal(range, scaleHeight)
+      axis[`${d}Y`].attr('class', 'y axis')
+        .call(
+          df.axis(yOrdinalScale, 'left')
+        )
+        .selectAll('text')
+        .attr({
+          'font-family': 'PingFangSC-Medium',
+          'font-size': 12,
+          'text-anchor': 'end',
+          stroke: 'none',
+          fill: colors[svgArgs.theme].indexTextColor,
+          y: (d, i) => {
+            return i !== 0
+              ? i !== ihGridNums
+                ? 0
+                : 6
+              : -6
+          }
+        })
     }
     // => 绘制MACD
-    function renderMACD (G) {
-      _MACD(G, 'MACD', store.MACDdata)
+    function renderMACD (G, d) {
+      _MACD(G, 'MACD', store.MACDdata, d)
     }
     // => 绘制VMACD
-    function renderVMACD (G) {
-      _MACD(G, 'VMACD', store.VMACDdata)
+    function renderVMACD (G, d) {
+      _MACD(G, 'VMACD', store.VMACDdata, d)
     }
-    function _MACD (G, type, data) {
-      let minMACDY0 = d3.min(data[0], (d) => { return d.value })
-      let maxMACDY0 = d3.max(data[0], (d) => { return d.value })
-      let minMACDY1 = d3.min(data[1], (d) => { return d.value })
-      let maxMACDY1 = d3.max(data[1], (d) => { return d.value })
-      let minMACDY2 = d3.min(data[2], (d) => { return d.value })
-      let maxMACDY2 = d3.max(data[2], (d) => { return d.value })
+    function _MACD (G, type, data, d) {
+      let minMACDY0 = df.min(data[0], 'value')
+      let maxMACDY0 = df.max(data[0], 'value')
+      let minMACDY1 = df.min(data[1], 'value')
+      let maxMACDY1 = df.max(data[1], 'value')
+      let minMACDY2 = df.min(data[2], 'value')
+      let maxMACDY2 = df.max(data[2], 'value')
       let max = Math.max(
         Math.abs(minMACDY0),
         Math.abs(maxMACDY0),
@@ -917,12 +994,12 @@ export default function (param, cb) {
       // => macd比例尺
       let maxH = unitH - 25
       scale[`${type}scale`] = df.linear([-max, max], [5, maxH - 5])
-      let lineScale = df.linear([-max, max], [maxH - 5, 5])
+      scale[`${type}Pathscale`] = df.linear([-max, max], [maxH - 5, 5])
       // => 曲线生成器
       let line = df.kLine({
         rectWidth: rectWidth,
         rectSpace: rectSpace,
-        scaleY: lineScale
+        scaleY: scale[`${type}Pathscale`]
       })
       // => MACD柱状图
       df.drawRectChart({
@@ -969,25 +1046,58 @@ export default function (param, cb) {
         data.slice(1),
         line
       )
+
+      // => 更新MACD 纵坐标轴
+      let range = []
+      let scaleHeight = []
+      let gridH = (unitH - headH) / ihGridNums
+      let maxDiff = scale[`${type}scale`].invert(unitH - headH)
+      df.getSerialArr(ihGridNums)
+        .forEach((d, i) => {
+          range = [...range, 0 - maxDiff + i * 2 * maxDiff / ihGridNums]
+          scaleHeight = [...scaleHeight, i * gridH]
+        })
+      // 反转数组
+      scaleHeight.reverse()
+      let yOrdinalScale = df.ordinal(range, scaleHeight)
+      axis[`${d}Y`].attr('class', 'y axis')
+        .call(
+          df.axis(yOrdinalScale, 'left')
+        )
+        .selectAll('text')
+        .attr({
+          'font-family': 'PingFangSC-Medium',
+          'font-size': 12,
+          'text-anchor': 'end',
+          stroke: 'none',
+          fill: colors[svgArgs.theme].indexTextColor,
+          y: (d, i) => {
+            return i !== 0
+              ? i !== ihGridNums
+                ? 0
+                : 6
+              : -6
+          }
+        })
     }
     // => 绘制RSI
-    function renderRSI (G) {
-      renderCurve(G, store.RSIdata, `RSIpath`, `RSIscale`)
+    function renderRSI (G, d) {
+      renderCurve(G, store.RSIdata, `RSIpath`, `RSIscale`, d)
     }
     // => 绘制KDJ
-    function renderKDJ (G) {
-      renderCurve(G, store.KDJdata, `KDJpath`, `KDJscale`)
+    function renderKDJ (G, d) {
+      renderCurve(G, store.KDJdata, `KDJpath`, `KDJscale`, d)
     }
     // => 绘制WR
-    function renderWR (G) {
-      renderCurve(G, store.WRdata, `WRpath`, `WRscale`)
+    function renderWR (G, d) {
+      renderCurve(G, store.WRdata, `WRpath`, `WRscale`, d)
     }
     // => 绘制BOLL
-    function renderBOLL (G) {
-      renderCurve(G, store.BOLLdata, `BOLLpath`, `BOLLscale`)
+    function renderBOLL (G, d) {
+      renderCurve(G, store.BOLLdata, `BOLLpath`, `BOLLscale`, d)
     }
     // => RSI/KDJ/WR
-    function renderCurve (G, data, className, scaleProp) {
+    function renderCurve (G, data, className, scaleProp, d) {
       if (scaleProp === 'BOLLscale') {
         scale[scaleProp] = scale.priceScale
       } else {
@@ -1000,8 +1110,41 @@ export default function (param, cb) {
           max = maxY > max ? maxY : max
         })
         // => 比例尺
-        let maxH = unitH - 25
-        scale[scaleProp] = df.linear([min, max], [maxH - 5, 5])
+        let maxH = unitH - headH
+        scale[scaleProp] = df.linear([min, max], [maxH, 0])
+
+        // => 更新纵坐标轴
+        let range = []
+        let scaleHeight = []
+        let gridH = (unitH - headH) / ihGridNums
+        let diff = scale[scaleProp].invert(0) - scale[scaleProp].invert(unitH - headH)
+        df.getSerialArr(ihGridNums)
+          .forEach((d, i) => {
+            range = [...range, scale[scaleProp].invert(unitH - headH) + diff / ihGridNums * i]
+            scaleHeight = [...scaleHeight, i * gridH]
+          })
+        // 反转数组
+        scaleHeight.reverse()
+        let yOrdinalScale = df.ordinal(range, scaleHeight)
+        axis[`${d}Y`].attr('class', 'y axis')
+          .call(
+            df.axis(yOrdinalScale, 'left')
+          )
+          .selectAll('text')
+          .attr({
+            'font-family': 'PingFangSC-Medium',
+            'font-size': 12,
+            'text-anchor': 'end',
+            stroke: 'none',
+            fill: colors[svgArgs.theme].indexTextColor,
+            y: (d, i) => {
+              return i !== 0
+                ? i !== ihGridNums
+                  ? 0
+                  : 6
+                : -6
+            }
+          })
       }
       // => 曲线生成器
       let line = df.kLine({

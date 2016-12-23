@@ -45,8 +45,11 @@ export let zh = d3.locale({
 })
 
 // 格式化时间样式
-export function timerStyle () {
-  return {}
+export const timerStyle = {
+  Ymd: '%Y/%m/%d',
+  md: '%m/%d',
+  YmdHM: '%Y/%m/%d %H:%M',
+  mdHM: '%m/%d %H:%M'
 }
 
 // 格式化时间
@@ -106,12 +109,16 @@ export function axis (scaleVal, direction, type) {
 
 export function formatVal (val) {
   if (typeof (val) === 'number') {
-    if (val < 1000) {
+    if (Math.abs(val) < 1000) {
       return val.toFixed(2)
-    } else if (val < 100000) {
+    } else if (Math.abs(val) < 10000) {
       return Math.floor(val)
+    } else if (Math.abs(val) < 1000000) {
+      return `${(val / 10000).toFixed(2)}万`
+    } else if (Math.abs(val) < 10000000) {
+      return `${(val / 10000).toFixed(1)}万`
     } else {
-      return val > 100000000 ? `${(val / 100000000).toFixed(1)}亿` : `${(val / 10000).toFixed(0)}万`
+      return Math.abs(val) > 100000000 ? `${(val / 100000000).toFixed(1)}亿` : `${(val / 10000).toFixed(0)}万`
     }
   } else {
     return val
