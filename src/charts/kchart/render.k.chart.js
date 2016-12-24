@@ -325,9 +325,6 @@ export default function (param, cb) {
         'pointer-events': 'all',
         cursor: 'crosshair'
       })
-      .on('mouseover', () => {
-        //
-      })
       .call(df.zoom([0.125, 3], zoom))
       .on('dblclick.zoom', null) // => 阻止默认双击放大事件
       .on('mousedown', function () {
@@ -344,10 +341,6 @@ export default function (param, cb) {
         d3.select(this).attr('cursor', 'crosshair')
       })
       .call(df.drag(drag))
-      .on('mousemove', function () {
-        // df.log(d3.select(this))
-        // df.log('mouse', d3.mouse(this))
-      })
     } else {
       // 更新数据
       d3.select('.KHeadG')
@@ -627,9 +620,6 @@ export default function (param, cb) {
           transform: `translate(0,${headH})`,
           'pointer-events': 'all',
           cursor: 'crosshair'
-        })
-        .on('mouseover', () => {
-          //
         })
         .call(df.zoom([0.125, 3], zoom))
         .on('dblclick.zoom', null) // =>  阻止默认双击放大事件
