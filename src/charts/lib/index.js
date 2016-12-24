@@ -770,6 +770,7 @@ export function drawTexts (G, className, texts, textArgs, fn) {
  */
 export function zoom (range, fn) {
   return d3.behavior.zoom()
+    .scale(1)
     .scaleExtent(range)
     .on('zoom', fn)
 }
@@ -781,4 +782,15 @@ export function zoom (range, fn) {
 export function drag (fn) {
   return d3.behavior.drag()
     .on('drag', fn)
+}
+
+/**
+ * 定义弧线生成器
+ */
+export function drawArcs ({innerR, outerR, sAngle, eAngle}) {
+  return d3.svg.arc()
+    .innerRadius(innerR)
+    .outerRadius(outerR)
+    .startAngle(sAngle * (Math.PI / 180))
+    .endAngle(eAngle * (Math.PI / 180))
 }

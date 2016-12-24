@@ -39,8 +39,8 @@ export default {
       symbol: '000001.SS',
       period: 'Day1'
     }, data => {
-      filterData = data.slice(0, 50)
-      newData = data.slice(50)
+      filterData = data.slice(0, 200)
+      newData = data.slice(200)
       param.data = filterData // 绘图数据
       param.period = 'Day1'
       param.lists = this.lists

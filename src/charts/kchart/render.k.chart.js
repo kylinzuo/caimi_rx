@@ -42,7 +42,6 @@ let store = {
   KDJParam: [9, 3, 3],
   WRParam: [10, 6],
   BOLLParam: [20]
-
 }
 
 // => 设置默认最多能显示哪些指标 如果增加新的指标时需要在此添加新的指标名称
@@ -70,6 +69,18 @@ let axis = {}
 let indicators1ToggleArr = ['成交量', '成交额']
 let indicators1ToggleArrType = ['volume', 'balance']
 let toggleArr1index = 0
+
+// => 画笔工具对象
+let brush = {
+  status: false, // 是否进入画状体
+  type: '' // 画笔类型 线段 折线 ...
+}
+let cursor = {
+  x: 0,
+  y: 0
+}
+// => 缩放大小初始值
+let currentScale = 1.0
 
 export default function (param, cb) {
   // => 获取svg尺寸
@@ -106,7 +117,7 @@ export default function (param, cb) {
   let rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
 
   // => 定义两个指向原始数据的指针 每次绘图提取出指针指向范围内的数据
-  let endIndex = store.data.length
+  let endIndex = store.data.length - 1
   let startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
 
   // => 绘图容器中添加画布svg
@@ -197,12 +208,63 @@ export default function (param, cb) {
         .attr('class', 'floorG')
         .attr('transform', `translate(0, ${chartH})`)
       df.drawRect(floorG, {
+        class: 'floorBgR',
         x: 0,
         y: 0,
         width: chartW,
         height: 46,
         fill: colors[svgArgs.theme].bgColor
       })
+      // => 滑动条背景框
+      df.drawRect(floorG, {
+        class: 'floorSlideBgR',
+        x: 0,
+        y: 0,
+        rx: 5,
+        ry: 5,
+        width: chartW,
+        height: 12,
+        stroke: colors[svgArgs.theme].slideBgRStroke,
+        'stroke-width': 1,
+        fill: 'none',
+        transform: `translate(${0},${19})`
+      })
+      // => 滑动条
+      df.drawRect(floorG, {
+        class: 'slideR',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 12,
+        stroke: 'none',
+        fill: colors[svgArgs.theme].slideFill,
+        transform: `translate(${0},${19})`
+      })
+      // => 滑动条两侧半圆
+      floorG.append('path')
+        .attr({
+          class: 'leftHalfCircle',
+          d: df.drawArcs({
+            innerR: 0,
+            outerR: 6,
+            sAngle: 180,
+            eAngle: 360
+          }),
+          fill: colors[svgArgs.theme].slideHalfCircle,
+          transform: `translate(${0},${25})`
+        })
+      floorG.append('path')
+        .attr({
+          class: 'rightHalfCircle',
+          d: df.drawArcs({
+            innerR: 0,
+            outerR: 6,
+            sAngle: 0,
+            eAngle: 180
+          }),
+          fill: colors[svgArgs.theme].slideHalfCircle,
+          transform: `translate(${100},${25})`
+        })
 
       // => 添加网格容器
       KG.append('g')
@@ -215,6 +277,12 @@ export default function (param, cb) {
       KG.append('g')
         .attr({
           class: `Kchart`,
+          transform: `translate(${0},${headH})`
+        })
+      // => 移动均线MA容器
+      KG.append('g')
+        .attr({
+          class: `KMAchart`,
           transform: `translate(${0},${headH})`
         })
       // => BOLL容器
@@ -252,34 +320,30 @@ export default function (param, cb) {
         width: chartW,
         height: kChartH - headH,
         fill: 'none',
-        stroke: 'red',
+        stroke: 'none',
         transform: `translate(0,${headH})`,
         'pointer-events': 'all',
         cursor: 'crosshair'
       })
-      .call(df.zoom([0.125, 3], () => {
-        df.log('zoom', d3.event.scale)
-
-        rectWidth = d3.event.scale * 8
-        rectNum = Math.floor(chartW / (2 + rectWidth))
-        rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
-        startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
-        // =>
-        dataFilter()
-      }))
-      .call(df.drag(() => {
-        df.log(d3.event.x)
-        df.log(d3.event.y - headH)
-      }))
+      .on('mouseover', () => {
+        //
+      })
+      .call(df.zoom([0.125, 3], zoom))
+      .on('dblclick.zoom', null) // => 阻止默认双击放大事件
       .on('mousedown', function () {
-        d3.select(this).attr('cursor', 'move')
+        if (!brush.status) {
+          d3.select(this).attr('cursor', 'move')
+        }
+        // => 阻止默认事件
+        d3.event.preventDefault()
+        d3.event.stopPropagation()
+        // => 缓存鼠标第一次按下时的数据
+        cacheCursor(this)
       })
       .on('mouseup', function () {
         d3.select(this).attr('cursor', 'crosshair')
       })
-      .on('click', () => {
-        df.log('click kEventR')
-      })
+      .call(df.drag(drag))
       .on('mousemove', function () {
         // df.log(d3.select(this))
         // df.log('mouse', d3.mouse(this))
@@ -300,6 +364,15 @@ export default function (param, cb) {
         .attr('height', svgArgs.height)
       d3.select('.floorG')
         .attr('transform', `translate(0, ${chartH})`)
+
+      d3.select(`.floorBgR`)
+        .attr({
+          width: chartW
+        })
+      d3.select(`.floorSlideBgR`)
+        .attr({
+          width: chartW
+        })
 
       d3.select('.kEventR')
         .attr({
@@ -336,7 +409,7 @@ export default function (param, cb) {
         })
         .select('path')
         .attr({
-          fill: 'red',
+          fill: colors[svgArgs.theme].btnHighlight,
           transform: `scale(${0.18}, ${0.18})`
         })
     })
@@ -386,8 +459,8 @@ export default function (param, cb) {
 
         // => 指标区 纵坐标容器
         axis[`${d}Y`] = g.append('g')
-        .attr('class', `${d}YaxisG`)
-        .attr('transform', `translate(${0},${headH})`)
+          .attr('class', `${d}YaxisG`)
+          .attr('transform', `translate(${0},${headH})`)
 
         // 添加网格容器
         g.append('g')
@@ -401,6 +474,14 @@ export default function (param, cb) {
             class: `${d}chart`,
             transform: `translate(${0},${headH})`
           })
+        // => MA DIF DEA均线容器
+        if (['VOL', 'MACD', 'VMACD'].indexOf(d) > -1) {
+          g.append('g')
+            .attr({
+              class: `${d}MAchart`,
+              transform: `translate(${0},${headH})`
+            })
+        }
         // 添加头部
         let hg = df.drawBox({
           G: g,
@@ -461,7 +542,7 @@ export default function (param, cb) {
             })
             .select('path')
             .attr({
-              fill: 'red',
+              fill: colors[svgArgs.theme].btnHighlight,
               transform: `scale(${0.18}, ${0.18})`
             })
         })
@@ -505,7 +586,7 @@ export default function (param, cb) {
             })
             .select('path')
             .attr({
-              fill: 'red',
+              fill: colors[svgArgs.theme].btnHighlight,
               transform: `scale(${0.2}, ${0.2})`
             })
         })
@@ -541,21 +622,31 @@ export default function (param, cb) {
           y: 0,
           width: chartW,
           height: unitH - headH,
-          stroke: 'red',
+          stroke: 'none',
           fill: 'none',
           transform: `translate(0,${headH})`,
           'pointer-events': 'all',
           cursor: 'crosshair'
         })
+        .on('mouseover', () => {
+          //
+        })
+        .call(df.zoom([0.125, 3], zoom))
+        .on('dblclick.zoom', null) // =>  阻止默认双击放大事件
         .on('mousedown', function () {
-          d3.select(this).attr('cursor', 'move')
+          if (!brush.status) {
+            d3.select(this).attr('cursor', 'move')
+          }
+          // => 阻止默认事件
+          d3.event.preventDefault()
+          d3.event.stopPropagation()
+          // => 缓存鼠标第一次按下时的数据
+          cacheCursor(this)
         })
         .on('mouseup', function () {
           d3.select(this).attr('cursor', 'crosshair')
         })
-        .on('click', () => {
-          df.log(`click ${d}EventR`)
-        })
+        .call(df.drag(drag))
       } else {
         d3.select(`.${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)
@@ -622,6 +713,67 @@ export default function (param, cb) {
       : endIndex
     startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
     dataFilter()
+  }
+
+  /**
+   * 缩放事件处理函数
+   */
+  function zoom () {
+    // => 更新当前缩放值
+    currentScale = d3.event.scale
+    rectWidth = d3.event.scale * 8
+    rectNum = Math.floor(chartW / (2 + rectWidth))
+    rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+    startIndex = startIndex >= 0
+      ? (endIndex - rectNum) >= 0
+        ? endIndex - rectNum
+        : 0
+      : 0
+    endIndex = startIndex === 0
+      ? endIndex = startIndex + rectNum < store.data.length - 1
+        ? startIndex + rectNum
+        : store.data.length - 1
+      : endIndex <= store.data.length - 1
+        ? endIndex
+        : store.data.length - 1
+    // => 处理数据绘图
+    dataFilter()
+  }
+
+  /**
+   * 缓存鼠标第一按下时的数据
+   */
+  function cacheCursor (that) {
+    cursor.x = d3.mouse(that)[0]
+    cursor.y = d3.mouse(that)[1]
+    cursor.tmpRectWidth = rectWidth
+    cursor.tmpstartIndex = startIndex
+    cursor.tmpendIndex = endIndex
+  }
+
+  /**
+   * 拖动事件处理函数
+   */
+  function drag () {
+    // => 判断是否处于画笔状态
+    if (!brush.status) {
+      let shift = d3.event.x - cursor.x
+      if (shift > 0) {
+        let shiftNum = Math.floor(Math.abs(shift) / (rectWidth + rectSpace))
+        startIndex = (cursor.tmpstartIndex - shiftNum) >= 0 ? cursor.tmpstartIndex - shiftNum : 0
+        endIndex = startIndex + rectNum < store.data.length ? startIndex + rectNum : store.data.length - 1
+        if (startIndex === 0) {
+          df.log('最早的k线了！')
+        }
+        dataFilter()
+      } else if (shift < 0) {
+        let shiftNum = Math.floor(Math.abs(shift) / (rectWidth + rectSpace))
+        endIndex = cursor.tmpendIndex + shiftNum < store.data.length ? cursor.tmpendIndex + shiftNum : store.data.length - 1
+        startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
+        df.log('最新k线了！')
+        dataFilter()
+      }
+    }
   }
 
   /**
@@ -787,6 +939,9 @@ export default function (param, cb) {
    * 绘制图形
    */
   function renderChart () {
+    // => 更新缩放比例
+    d3.select('.kEventR')
+      .call(df.zoom([0.125, 3], zoom).scale(currentScale))
     // => 更新网格位置
     df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, 1, {
       width: chartW,
@@ -839,7 +994,7 @@ export default function (param, cb) {
     })
     // => 绘制ma移动均线
     df.drawPolyline(
-      d3.select('.Kchart'),
+      d3.select('.KMAchart'),
       {
         class: 'MApath',
         fill: 'none',
@@ -862,7 +1017,7 @@ export default function (param, cb) {
       x: (d, i) => {
         return i !== 0
           ? i !== timeArr.length - 1
-            ? (i * tIndex - 1) * (rectWidth + rectSpace)
+            ? (i * tIndex - 1) * (rectWidth + rectSpace) + (rectWidth + rectSpace) / 2
             : store.Kdata.length * (rectWidth + rectSpace)
           : 0
       },
@@ -934,6 +1089,9 @@ export default function (param, cb) {
 
     // => 按指标渲染图形
     store.lists.forEach((d, i) => {
+      // => 缩放比例
+      d3.select(`.${d}EventR`)
+        .call(df.zoom([0.125, 3], zoom).scale(currentScale))
       // => 更新网格位置
       df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, 1, {
         width: chartW,
@@ -1011,7 +1169,7 @@ export default function (param, cb) {
       })
       // => 绘制成交量／成交额 移动均线
       df.drawPolyline(
-        G,
+        d3.select(`.${d}MAchart`),
         {
           class: 'VolumeMApath',
           fill: 'none',
@@ -1125,7 +1283,7 @@ export default function (param, cb) {
       })
       // => 绘制MACD DIF, DEA曲线
       df.drawPolyline(
-        G,
+        d3.select(`.${d}MAchart`),
         {
           class: `${type}path`,
           fill: 'none',
