@@ -215,9 +215,14 @@ export default function (param, cb) {
         height: 46,
         fill: colors[svgArgs.theme].bgColor
       })
+
+      // => 滑动条容器
+      let slideG = floorG.append('g')
+        .attr('class', 'slideG')
+        .attr('transform', `translate(0, ${19})`)
       // => 滑动条背景框
-      df.drawRect(floorG, {
-        class: 'floorSlideBgR',
+      df.drawRect(slideG, {
+        class: 'slideBgR',
         x: 0,
         y: 0,
         rx: 5,
@@ -227,10 +232,10 @@ export default function (param, cb) {
         stroke: colors[svgArgs.theme].slideBgRStroke,
         'stroke-width': 1,
         fill: 'none',
-        transform: `translate(${0},${19})`
+        transform: `translate(${0},${0})`
       })
       // => 滑动条
-      df.drawRect(floorG, {
+      df.drawRect(slideG, {
         class: 'slideR',
         x: 0,
         y: 0,
@@ -238,10 +243,43 @@ export default function (param, cb) {
         height: 12,
         stroke: 'none',
         fill: colors[svgArgs.theme].slideFill,
-        transform: `translate(${0},${19})`
+        transform: `translate(${0},${0})`,
+        cursor: 'move'
       })
+      .on('mousedown', function () {
+        df.log('d3.mouse', d3.mouse(this))
+        cacheCursor(this)
+      })
+      .call(df.drag(function () {
+        let slideUnitW = chartW / store.data.length
+        let shift = d3.mouse(this)[0] - cursor.x
+        let shiftNum = Math.floor(Math.abs(shift) / slideUnitW)
+        if (shift > 0) {
+          endIndex = cursor.tmpendIndex + shiftNum < store.data.length
+            ? cursor.tmpendIndex + shiftNum
+            : store.data.length - 1
+          startIndex = (endIndex - rectNum) >= 0
+            ? endIndex - rectNum
+            : 0
+          if (endIndex >= store.data.length - 1) {
+            df.log('最新k线了！')
+          }
+          dataFilter()
+        } else if (shift < 0) {
+          startIndex = (cursor.tmpstartIndex - shiftNum) >= 0
+            ? cursor.tmpstartIndex - shiftNum
+            : 0
+          endIndex = startIndex + rectNum < store.data.length
+            ? startIndex + rectNum
+            : store.data.length - 1
+          if (startIndex === 0) {
+            df.log('最早的k线了！')
+          }
+          dataFilter()
+        }
+      }))
       // => 滑动条两侧半圆
-      floorG.append('path')
+      slideG.append('path')
         .attr({
           class: 'leftHalfCircle',
           d: df.drawArcs({
@@ -250,10 +288,9 @@ export default function (param, cb) {
             sAngle: 180,
             eAngle: 360
           }),
-          fill: colors[svgArgs.theme].slideHalfCircle,
-          transform: `translate(${0},${25})`
+          fill: colors[svgArgs.theme].slideHalfCircle
         })
-      floorG.append('path')
+      slideG.append('path')
         .attr({
           class: 'rightHalfCircle',
           d: df.drawArcs({
@@ -262,9 +299,107 @@ export default function (param, cb) {
             sAngle: 0,
             eAngle: 180
           }),
-          fill: colors[svgArgs.theme].slideHalfCircle,
-          transform: `translate(${100},${25})`
+          fill: colors[svgArgs.theme].slideHalfCircle
         })
+      // => 左右半圆事件接收区
+      let slideRArgs = {}
+      df.drawRect(slideG, {
+        class: 'slideLeftEventR',
+        x: 0,
+        y: 0,
+        width: 12,
+        height: 12,
+        stroke: 'none',
+        fill: 'red',
+        opacity: 0.2,
+        transform: `translate(${-6},${0})`,
+        cursor: 'col-resize'
+      })
+      .on('mousedown', function () {
+        df.log(d3.mouse(this))
+        cacheCursor(this)
+        df.log(cursor)
+        slideRArgs = {
+          x: +d3.select('.slideR').attr('x'),
+          width: +d3.select('.slideR').attr('width')
+        }
+        df.log('slideRargs', slideRArgs)
+      })
+      .call(df.drag(function () {
+        let shift = d3.mouse(this)[0] >= 0 ? d3.mouse(this)[0] - cursor.x : 0 - cursor.x
+        let x = slideRArgs.x + shift > 0
+          ? slideRArgs.x + shift < slideRArgs.x + slideRArgs.width - 12
+            ? slideRArgs.x + shift
+            : slideRArgs.x + slideRArgs.width - 12
+          : 0
+        let w = slideRArgs.width - shift > 12
+          ? slideRArgs.width - shift < chartW
+            ? slideRArgs.width - shift
+            : chartW
+          : 12
+        d3.select(`.slideR`).attr({
+          x: x,
+          width: w
+        })
+        d3.select(this).attr({
+          x: x
+        })
+        d3.select(`.leftHalfCircle`).attr({
+          transform: `translate(${x},${6})`
+        })
+        rectWidth = chartW * chartW / store.data.length / w - rectSpace
+        rectNum = Math.floor(chartW / (2 + rectWidth))
+        startIndex = endIndex - rectNum > 0 ? endIndex - rectNum : 0
+        rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+        dataFilter()
+      }))
+      df.drawRect(slideG, {
+        class: 'slideRightEventR',
+        x: 0,
+        y: 0,
+        width: 12,
+        height: 12,
+        stroke: 'none',
+        fill: 'red',
+        opacity: 0.2,
+        transform: `translate(${-6},${0})`,
+        cursor: 'col-resize'
+      })
+      .on('mousedown', function () {
+        cacheCursor(this)
+        slideRArgs = {
+          x: +d3.select('.slideR').attr('x'),
+          width: +d3.select('.slideR').attr('width')
+        }
+      })
+      .call(df.drag(function () {
+        let minW = Math.floor(chartW / 24) / store.data.length * chartW
+        let shift = d3.mouse(this)[0] - cursor.x
+        let w = slideRArgs.width + shift < chartW - slideRArgs.x
+          ? slideRArgs.width + shift > 12
+            ? slideRArgs.width + shift
+            : 12
+          : chartW - slideRArgs.x
+        w = w > minW ? w : minW
+        let x = slideRArgs.x + w
+        d3.select(`.slideR`).attr({
+          width: w
+        })
+        d3.select(this).attr({
+          x: x
+        })
+        d3.select(`.rightHalfCircle`).attr({
+          opacity: x >= chartW ? 0 : 1,
+          transform: `translate(${x},${6})`
+        })
+        rectWidth = chartW * chartW / store.data.length / w - rectSpace
+        rectNum = Math.floor(chartW / (2 + rectWidth))
+        endIndex = startIndex + rectNum < store.data.length
+          ? startIndex + rectNum
+          : store.data.length - 1
+        rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+        dataFilter()
+      }))
 
       // => 添加网格容器
       KG.append('g')
@@ -760,10 +895,54 @@ export default function (param, cb) {
         let shiftNum = Math.floor(Math.abs(shift) / (rectWidth + rectSpace))
         endIndex = cursor.tmpendIndex + shiftNum < store.data.length ? cursor.tmpendIndex + shiftNum : store.data.length - 1
         startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
-        df.log('最新k线了！')
+        if (endIndex >= store.data.length - 1) {
+          df.log('最新k线了！')
+        }
         dataFilter()
       }
     }
+  }
+
+  /**
+   * 滑动条拖动事件
+   */
+  function slideMove ({rectX, rectW}) {
+    d3.select('.slideR')
+      .attr({
+        // rx: rectX > 0
+        //   ? rectX + rectW < chartW
+        //     ? 0
+        //     : 5
+        //   : 5,
+        // ry: rectX > 0
+        //   ? rectX + rectW < chartW
+        //     ? 0
+        //     : 5
+        //   : 5,
+        // x: rectX,
+        // width: rectW
+      })
+      .transition()
+      .attr('x', rectX)
+      .attr('width', rectW)
+    d3.select('.leftHalfCircle')
+      .attr({
+        opacity: rectX <= 0 ? 0 : 1,
+        transform: `translate(${rectX},${6})`
+      })
+    d3.select('.rightHalfCircle')
+      .attr({
+        opacity: rectX + rectW >= chartW ? 0 : 1,
+        transform: `translate(${rectX + rectW},${6})`
+      })
+    d3.select('.slideLeftEventR')
+      .attr({
+        x: rectX
+      })
+    d3.select('.slideRightEventR')
+      .attr({
+        x: rectX + rectW
+      })
   }
 
   /**
@@ -929,6 +1108,12 @@ export default function (param, cb) {
    * 绘制图形
    */
   function renderChart () {
+    // => 更新底部滑动条位置
+    let slideUnitW = chartW / store.data.length
+    slideMove({
+      rectX: startIndex * slideUnitW,
+      rectW: (endIndex - startIndex + 1) * slideUnitW
+    })
     // => 更新缩放比例
     d3.select('.kEventR')
       .call(df.zoom([0.125, 3], zoom).scale(currentScale))
