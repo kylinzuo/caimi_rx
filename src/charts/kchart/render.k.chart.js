@@ -247,7 +247,6 @@ export default function (param, cb) {
         cursor: 'move'
       })
       .on('mousedown', function () {
-        df.log('d3.mouse', d3.mouse(this))
         cacheCursor(this)
       })
       .call(df.drag(function () {
@@ -310,47 +309,42 @@ export default function (param, cb) {
         width: 12,
         height: 12,
         stroke: 'none',
-        fill: 'red',
-        opacity: 0.2,
+        opacity: 0,
         transform: `translate(${-6},${0})`,
         cursor: 'col-resize'
       })
       .on('mousedown', function () {
-        df.log(d3.mouse(this))
         cacheCursor(this)
-        df.log(cursor)
         slideRArgs = {
           x: +d3.select('.slideR').attr('x'),
           width: +d3.select('.slideR').attr('width')
         }
-        df.log('slideRargs', slideRArgs)
       })
       .call(df.drag(function () {
+        // => 计算滑动条最小长度
+        let minW = Math.floor(chartW / (24 + 2)) / store.data.length * chartW
+        // => 计算滑动条最大长度
+        let maxW = Math.floor(chartW / (2 + 1)) / store.data.length * chartW
+        // => 鼠标滑动偏移量
         let shift = d3.mouse(this)[0] >= 0 ? d3.mouse(this)[0] - cursor.x : 0 - cursor.x
-        let x = slideRArgs.x + shift > 0
-          ? slideRArgs.x + shift < slideRArgs.x + slideRArgs.width - 12
-            ? slideRArgs.x + shift
-            : slideRArgs.x + slideRArgs.width - 12
-          : 0
         let w = slideRArgs.width - shift > 12
           ? slideRArgs.width - shift < chartW
             ? slideRArgs.width - shift
             : chartW
           : 12
-        d3.select(`.slideR`).attr({
-          x: x,
-          width: w
-        })
-        d3.select(this).attr({
-          x: x
-        })
-        d3.select(`.leftHalfCircle`).attr({
-          transform: `translate(${x},${6})`
-        })
+        // => 将滑动条长度限定在最大最小长度之间
+        w = w > minW
+          ? w < maxW
+            ? w
+            : maxW
+          : minW
         rectWidth = chartW * chartW / store.data.length / w - rectSpace
         rectNum = Math.floor(chartW / (2 + rectWidth))
         startIndex = endIndex - rectNum > 0 ? endIndex - rectNum : 0
         rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+        // => 更新当前缩放值
+        currentScale = rectWidth / 8
+
         dataFilter()
       }))
       df.drawRect(slideG, {
@@ -360,8 +354,7 @@ export default function (param, cb) {
         width: 12,
         height: 12,
         stroke: 'none',
-        fill: 'red',
-        opacity: 0.2,
+        opacity: 0,
         transform: `translate(${-6},${0})`,
         cursor: 'col-resize'
       })
@@ -373,31 +366,32 @@ export default function (param, cb) {
         }
       })
       .call(df.drag(function () {
-        let minW = Math.floor(chartW / 24) / store.data.length * chartW
+        // => 计算滑动条最小长度
+        let minW = Math.floor(chartW / (24 + 2)) / store.data.length * chartW
+        // => 计算滑动条最大长度
+        let maxW = Math.floor(chartW / (2 + 1)) / store.data.length * chartW
+        // => 鼠标滑动偏移量
         let shift = d3.mouse(this)[0] - cursor.x
         let w = slideRArgs.width + shift < chartW - slideRArgs.x
           ? slideRArgs.width + shift > 12
             ? slideRArgs.width + shift
             : 12
           : chartW - slideRArgs.x
-        w = w > minW ? w : minW
-        let x = slideRArgs.x + w
-        d3.select(`.slideR`).attr({
-          width: w
-        })
-        d3.select(this).attr({
-          x: x
-        })
-        d3.select(`.rightHalfCircle`).attr({
-          opacity: x >= chartW ? 0 : 1,
-          transform: `translate(${x},${6})`
-        })
+        // => 将滑动条长度限定在最大最小长度之间
+        w = w > minW
+          ? w < maxW
+            ? w
+            : maxW
+          : minW
         rectWidth = chartW * chartW / store.data.length / w - rectSpace
         rectNum = Math.floor(chartW / (2 + rectWidth))
         endIndex = startIndex + rectNum < store.data.length
           ? startIndex + rectNum
           : store.data.length - 1
         rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+        // => 更新当前缩放值
+        currentScale = rectWidth / 8
+
         dataFilter()
       }))
 
@@ -497,7 +491,7 @@ export default function (param, cb) {
         .attr({
           width: chartW
         })
-      d3.select(`.floorSlideBgR`)
+      d3.select(`.slideBgR`)
         .attr({
           width: chartW
         })
@@ -919,12 +913,9 @@ export default function (param, cb) {
         //     ? 0
         //     : 5
         //   : 5,
-        // x: rectX,
-        // width: rectW
+        x: rectX,
+        width: rectW
       })
-      .transition()
-      .attr('x', rectX)
-      .attr('width', rectW)
     d3.select('.leftHalfCircle')
       .attr({
         opacity: rectX <= 0 ? 0 : 1,
