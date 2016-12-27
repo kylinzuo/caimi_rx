@@ -39,5 +39,9 @@ kcolors[0] = {
   indexTextColor: '#535353', // 指标区标题颜色
   slideBgRStroke: '#E8E8E8', // 滑动条背景框边框颜色
   slideHalfCircle: '#B2B2B2', // 滑动条半圆颜色
-  slideFill: '#E8E8E8' // 滑动条色
+  slideFill: '#E8E8E8', // 滑动条色
+  cursorBlue: '#307CD5', // 十字光标颜色
+  tipBlue: '#D4E8FF', // 十字光标提示框颜色
+  tipBorderBlue: '#7CB0EC', // 十字光标提示框边框颜色
+  tipTextBlue: '#146BCF' // 十字光标提示框字体颜色
 }

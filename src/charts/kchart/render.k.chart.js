@@ -58,6 +58,8 @@ let ihGridNums = 4 // => 指标区
 let vGridNums = 8
 // => 时间坐标轴数据
 let timeArr = []
+// => 滑动条时间轴数据
+let slideTimeArr = []
 
 // => 存储所有需要用到的比例尺 便于交互时取用
 let scale = {}
@@ -69,6 +71,7 @@ let axis = {}
 let indicators1ToggleArr = ['成交量', '成交额']
 let indicators1ToggleArrType = ['volume', 'balance']
 let toggleArr1index = 0
+let cursorFlag = false
 
 // => 画笔工具对象
 let brush = {
@@ -117,7 +120,7 @@ export default function (param, cb) {
   let rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
 
   // => 定义两个指向原始数据的指针 每次绘图提取出指针指向范围内的数据
-  let endIndex = store.data.length - 1
+  let endIndex = store.data.length
   let startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
 
   // => 绘图容器中添加画布svg
@@ -138,6 +141,82 @@ export default function (param, cb) {
   // 添加绘图容器
   let svgG = svg.append('g')
     .attr('class', 'svgG')
+    .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
+
+  // => 十字光标
+  let cursorG = svg.append('g')
+    .attr('class', 'cursorG')
+    .attr('opacity', 0)
+    .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
+  let cursorLineX = df.drawLine(cursorG, {
+    class: 'cursorLineX',
+    x1: 0,
+    x2: chartW,
+    stroke: colors[param.theme].cursorBlue,
+    'stroke-width': 1,
+    'stroke-dasharray': '3, 3'
+  })
+  let cursorLineY = df.drawLine(cursorG, {
+    class: 'cursorLineY',
+    y1: th + headH,
+    y2: th + chartH,
+    stroke: colors[param.theme].cursorBlue,
+    'stroke-width': 1,
+    'stroke-dasharray': '3, 3'
+  })
+
+  // => 光标指示时间
+  let timeTipG = cursorG.append('g')
+    .attr('class', 'timeTipG')
+    .attr('opacity', 1)
+    .attr('transform', `translate(${0},${chartH})`)
+  let timeTipR = df.drawRect(timeTipG, {
+    class: 'timeTipR',
+    x: 0,
+    y: 0,
+    width: 70,
+    height: 18,
+    stroke: colors[param.theme].tipBorderBlue,
+    'stroke-width': 1,
+    fill: colors[param.theme].tipBlue
+  })
+  let timeTipText = df.drawText(timeTipG, {
+    'font-family': 'PingFangSC-Regular',
+    'font-size': 12,
+    dx: 38,
+    dy: 14,
+    stroke: 'none',
+    fill: colors[param.theme].tipTextBlue,
+    'text-anchor': 'middle'
+  })
+  // => 光标指示纵坐标
+  let priceTipG = cursorG.append('g')
+    .attr('class', 'priceTipG')
+    .attr('opacity', 1)
+    .attr('transform', `translate(${-lw},${headH})`)
+  df.drawRect(priceTipG, {
+    class: 'priceTipR',
+    x: 0,
+    y: 0,
+    width: lw,
+    height: 18,
+    stroke: colors[param.theme].tipBorderBlue,
+    'stroke-width': 1,
+    fill: colors[param.theme].tipBlue
+  })
+  let priceTipText = df.drawText(priceTipG, {
+    'font-family': 'PingFangSC-Regular',
+    'font-size': 12,
+    dx: lw,
+    dy: 14,
+    stroke: 'none',
+    fill: colors[param.theme].tipTextBlue,
+    'text-anchor': 'end'
+  })
+
+  // => 事件接收区容器
+  let EventG = svg.append('g')
+    .attr('class', 'EventG')
     .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
 
   // => 新增或减少指标区
@@ -216,10 +295,15 @@ export default function (param, cb) {
         fill: colors[svgArgs.theme].bgColor
       })
 
+      // => 网格容器
+      floorG.append('g')
+        .attr('class', 'slideGridG')
+        .attr('transform', `translate(0, ${19})`)
       // => 滑动条容器
       let slideG = floorG.append('g')
         .attr('class', 'slideG')
         .attr('transform', `translate(0, ${19})`)
+
       // => 滑动条背景框
       df.drawRect(slideG, {
         class: 'slideBgR',
@@ -254,13 +338,13 @@ export default function (param, cb) {
         let shift = d3.mouse(this)[0] - cursor.x
         let shiftNum = Math.floor(Math.abs(shift) / slideUnitW)
         if (shift > 0) {
-          endIndex = cursor.tmpendIndex + shiftNum < store.data.length
+          endIndex = cursor.tmpendIndex + shiftNum <= store.data.length
             ? cursor.tmpendIndex + shiftNum
-            : store.data.length - 1
+            : store.data.length
           startIndex = (endIndex - rectNum) >= 0
             ? endIndex - rectNum
             : 0
-          if (endIndex >= store.data.length - 1) {
+          if (endIndex >= store.data.length) {
             df.log('最新k线了！')
           }
           dataFilter()
@@ -270,7 +354,7 @@ export default function (param, cb) {
             : 0
           endIndex = startIndex + rectNum < store.data.length
             ? startIndex + rectNum
-            : store.data.length - 1
+            : store.data.length
           if (startIndex === 0) {
             df.log('最早的k线了！')
           }
@@ -387,7 +471,7 @@ export default function (param, cb) {
         rectNum = Math.floor(chartW / (2 + rectWidth))
         endIndex = startIndex + rectNum < store.data.length
           ? startIndex + rectNum
-          : store.data.length - 1
+          : store.data.length
         rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
         // => 更新当前缩放值
         currentScale = rectWidth / 8
@@ -440,9 +524,8 @@ export default function (param, cb) {
         scaleX: 0.15,
         scaleY: 0.15
       })
-
       // => k线区 事件交互容器
-      df.drawRect(KG, {
+      df.drawRect(EventG, {
         class: 'kEventR',
         x: 0,
         y: 0,
@@ -470,6 +553,27 @@ export default function (param, cb) {
         d3.select(this).attr('cursor', 'crosshair')
       })
       .call(df.drag(drag))
+      .on('click', () => {
+        if (!brush.status) {
+          cursorFlag = !cursorFlag
+        }
+        if (cursorFlag) {
+          showCousor()
+        } else {
+          hideCorsor()
+          return
+        }
+      })
+      .on('mousemove', function () {
+        let x = d3.mouse(this)[0]
+        let y = d3.mouse(this)[1]
+        cursorMove({
+          whichis: 'price',
+          x: x,
+          y: y,
+          initY: y
+        })
+      })
     } else {
       // 更新数据
       d3.select('.KHeadG')
@@ -738,7 +842,7 @@ export default function (param, cb) {
         })
 
         // => 指标区 事件交互容器
-        df.drawRect(g, {
+        df.drawRect(EventG, {
           class: `${d}EventR`,
           x: 0,
           y: 0,
@@ -746,7 +850,7 @@ export default function (param, cb) {
           height: unitH - headH,
           stroke: 'none',
           fill: 'none',
-          transform: `translate(0,${headH})`,
+          transform: `translate(0,${kChartH + i * unitH + headH})`,
           'pointer-events': 'all',
           cursor: 'crosshair'
         })
@@ -766,6 +870,39 @@ export default function (param, cb) {
           d3.select(this).attr('cursor', 'crosshair')
         })
         .call(df.drag(drag))
+        .on('click', () => {
+          if (!brush.status) {
+            cursorFlag = !cursorFlag
+          }
+          if (cursorFlag) {
+            showCousor()
+          } else {
+            hideCorsor()
+            return
+          }
+        })
+        .on('click', () => {
+          if (!brush.status) {
+            cursorFlag = !cursorFlag
+          }
+          if (cursorFlag) {
+            showCousor()
+          } else {
+            hideCorsor()
+            return
+          }
+        })
+        .on('mousemove', function () {
+          let x = d3.mouse(this)[0]
+          let initY = d3.mouse(this)[1]
+          let y = kChartH + i * unitH + initY
+          cursorMove({
+            whichis: `${d}`,
+            x: x,
+            y: y,
+            initY: initY
+          })
+        })
       } else {
         d3.select(`.${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)
@@ -802,7 +939,7 @@ export default function (param, cb) {
           .attr({
             width: chartW,
             height: unitH - headH,
-            transform: `translate(0,${headH})`
+            transform: `translate(0,${kChartH + i * unitH + headH})`
           })
       }
     })
@@ -818,7 +955,7 @@ export default function (param, cb) {
     chartH = svgArgs.height - th - bh
     rectNum = Math.floor(chartW / (2 + rectWidth))
     rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
-    endIndex = store.data.length - 1
+    endIndex = store.data.length
     startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
     this.updateIndicators(param.lists)
   })
@@ -827,8 +964,8 @@ export default function (param, cb) {
   this.render = function (data) {
     // => 更新绘图数据
     store.data = Array.isArray(data) ? data : store.data
-    endIndex = store.data.length - 2 === endIndex
-      ? store.data.length - 1
+    endIndex = store.data.length - 1 === endIndex
+      ? store.data.length
       : endIndex
     startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
     dataFilter()
@@ -849,12 +986,12 @@ export default function (param, cb) {
         : 0
       : 0
     endIndex = startIndex === 0
-      ? endIndex = startIndex + rectNum < store.data.length - 1
+      ? endIndex = startIndex + rectNum < store.data.length
         ? startIndex + rectNum
-        : store.data.length - 1
-      : endIndex <= store.data.length - 1
+        : store.data.length
+      : endIndex <= store.data.length
         ? endIndex
-        : store.data.length - 1
+        : store.data.length
     // => 处理数据绘图
     dataFilter()
   }
@@ -880,16 +1017,16 @@ export default function (param, cb) {
       if (shift > 0) {
         let shiftNum = Math.floor(Math.abs(shift) / (rectWidth + rectSpace))
         startIndex = (cursor.tmpstartIndex - shiftNum) >= 0 ? cursor.tmpstartIndex - shiftNum : 0
-        endIndex = startIndex + rectNum < store.data.length ? startIndex + rectNum : store.data.length - 1
+        endIndex = startIndex + rectNum < store.data.length ? startIndex + rectNum : store.data.length
         if (startIndex === 0) {
           df.log('最早的k线了！')
         }
         dataFilter()
       } else if (shift < 0) {
         let shiftNum = Math.floor(Math.abs(shift) / (rectWidth + rectSpace))
-        endIndex = cursor.tmpendIndex + shiftNum < store.data.length ? cursor.tmpendIndex + shiftNum : store.data.length - 1
+        endIndex = cursor.tmpendIndex + shiftNum < store.data.length ? cursor.tmpendIndex + shiftNum : store.data.length
         startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
-        if (endIndex >= store.data.length - 1) {
+        if (endIndex >= store.data.length) {
           df.log('最新k线了！')
         }
         dataFilter()
@@ -1091,6 +1228,18 @@ export default function (param, cb) {
     }
     timeArr.push(store.Kdata[store.Kdata.length - 1].time)
 
+    // => 获取滑动条时间轴数据
+    slideTimeArr = []
+    let indexGap = store.data.length / vGridNums
+    for (let i = 0; i < vGridNums; i++) {
+      if (i * indexGap < store.data.length) {
+        slideTimeArr.push(store.data[Math.round(i * indexGap)].time)
+      } else {
+        break
+      }
+    }
+    slideTimeArr.push(store.data[store.data.length - 1].time)
+
     // => 绘制图形
     renderChart()
   }
@@ -1099,15 +1248,49 @@ export default function (param, cb) {
    * 绘制图形
    */
   function renderChart () {
-    // => 更新底部滑动条位置
+    // => 更新底部滑动条网格与位置
+    df.drawSlideGrid(d3.select('.slideGridG'), svgArgs, slideTimeArr.length - 1, {
+      width: chartW,
+      height: 12,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      stroke: colors[svgArgs.theme].gridGray
+    })
     let slideUnitW = chartW / store.data.length
     slideMove({
       rectX: startIndex * slideUnitW,
       rectW: (endIndex - startIndex + 1) * slideUnitW
     })
+    // => 更新滑动条底部时间
+    df.drawTexts(d3.select('.slideGridG'), 'xSlideTime', slideTimeArr, {
+      class: 'xSlideTime',
+      x: (d, i) => {
+        return i * (chartW / (slideTimeArr.length - 1))
+      },
+      y: 24,
+      'font-family': 'PingFangSC-Regular',
+      'font-size': 12,
+      stroke: 'none',
+      fill: colors[svgArgs.theme].indexTextColor,
+      'text-anchor': (d, i) => {
+        if (i === 0) {
+          return 'start'
+        } else if (i === slideTimeArr.length - 1) {
+          return 'end'
+        } else {
+          return 'middle'
+        }
+      }
+    }, (d, i) => {
+      return df.formatTime(df.timerStyle.Ymd)(new Date(d))
+    })
+
     // => 更新缩放比例
     d3.select('.kEventR')
       .call(df.zoom([0.125, 3], zoom).scale(currentScale))
+      .on('dblclick.zoom', null)
     // => 更新网格位置
     df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, 1, {
       width: chartW,
@@ -1127,15 +1310,21 @@ export default function (param, cb) {
       right: 0,
       stroke: colors[svgArgs.theme].gridGray
     })
+
+    // => k线横坐标比例尺
+    scale.kchartX = d3.scale.linear()
+      .domain([0, rectNum])
+      .range([0, chartW])
     // => k线比例尺
     let minPrice = d3.min(store.Kdata, (d) => { return d.low })
     let maxPrice = d3.max(store.Kdata, (d) => { return d.high })
-    scale.priceScale = df.linear([minPrice, maxPrice], [kChartH - headH - 11, 11])
+    scale.pricescale = df.linear([minPrice, maxPrice], [kChartH - headH - 11, 11])
     let line = df.kLine({
       rectWidth: rectWidth,
       rectSpace: rectSpace,
-      scaleY: scale.priceScale
+      scaleY: scale.pricescale
     })
+
     // => 绘制k线上下引线
     df.drawkLeads({
       G: d3.select('.Kchart'),
@@ -1143,7 +1332,7 @@ export default function (param, cb) {
       className: 'kLine',
       rectWidth: rectWidth,
       rectSpace: rectSpace,
-      scaleY: scale.priceScale,
+      scaleY: scale.pricescale,
       red: colors[svgArgs.theme].kRed,
       green: colors[svgArgs.theme].kGreen
     })
@@ -1154,7 +1343,7 @@ export default function (param, cb) {
       className: 'kRect',
       rectWidth: rectWidth,
       rectSpace: rectSpace,
-      scaleY: scale.priceScale,
+      scaleY: scale.pricescale,
       red: colors[svgArgs.theme].kRed,
       green: colors[svgArgs.theme].kGreen
     })
@@ -1194,7 +1383,7 @@ export default function (param, cb) {
       fill: colors[svgArgs.theme].indexTextColor,
       opacity: (d, i) => {
         return i === timeArr.length - 1
-          ? store.Kdata.length * (rectWidth + rectSpace) < chartW
+          ? Math.round(store.Kdata.length * (rectWidth + rectSpace)) < chartW
             ? 0
             : 1
           : 1
@@ -1224,10 +1413,10 @@ export default function (param, cb) {
     let range = []
     let scaleHeight = []
     let gridH = (kChartH - headH) / khGridNums
-    let diff = scale.priceScale.invert(0) - scale.priceScale.invert(kChartH - headH)
+    let diff = scale.pricescale.invert(0) - scale.pricescale.invert(kChartH - headH)
     df.getSerialArr(khGridNums)
       .forEach((d, i) => {
-        range = [...range, scale.priceScale.invert(kChartH - headH) + (diff / khGridNums * i)]
+        range = [...range, scale.pricescale.invert(kChartH - headH) + (diff / khGridNums * i)]
         scaleHeight = [...scaleHeight, i * gridH]
       })
     // 反转数组
@@ -1258,6 +1447,7 @@ export default function (param, cb) {
       // => 缩放比例
       d3.select(`.${d}EventR`)
         .call(df.zoom([0.125, 3], zoom).scale(currentScale))
+        .on('dblclick.zoom', null)
       // => 更新网格位置
       df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, 1, {
         width: chartW,
@@ -1292,8 +1482,8 @@ export default function (param, cb) {
       let max = d3.max(store.Kdata, (d) => { return d[indicators1ToggleArrType[toggleArr1index]] })
 
       let maxH = unitH - 25
-      scale.volumeScale = df.linear([0, max], [0, maxH - 5])
-      scale.volumePathScale = df.linear([0, max], [maxH - 5, 0])
+      scale.VOLscale = df.linear([0, max], [0, maxH - 5])
+      scale.VOLPathscale = df.linear([0, max], [maxH - 5, 0])
       // => 绘制成交量成交额柱状图
       df.drawRectChart({
         G: G,
@@ -1303,11 +1493,11 @@ export default function (param, cb) {
           return rectSpace + i * (rectWidth + rectSpace)
         },
         y: (d, i) => {
-          return maxH - scale.volumeScale(d[indicators1ToggleArrType[toggleArr1index]])
+          return maxH - scale.VOLscale(d[indicators1ToggleArrType[toggleArr1index]])
         },
         width: rectWidth,
         height: (d, i) => {
-          return scale.volumeScale(d[indicators1ToggleArrType[toggleArr1index]])
+          return scale.VOLscale(d[indicators1ToggleArrType[toggleArr1index]])
         },
         fill: (d, i) => {
           if (d.close > d.open) {
@@ -1331,7 +1521,7 @@ export default function (param, cb) {
       let line = df.kLine({
         rectWidth: rectWidth,
         rectSpace: rectSpace,
-        scaleY: scale.volumePathScale
+        scaleY: scale.VOLPathscale
       })
       // => 绘制成交量／成交额 移动均线
       df.drawPolyline(
@@ -1357,7 +1547,7 @@ export default function (param, cb) {
       let gridH = (unitH - headH) / ihGridNums
       df.getSerialArr(ihGridNums)
         .forEach((d, i) => {
-          range = i === 0 ? ['', ...range] : [...range, scale.volumeScale.invert(unitH - headH) / ihGridNums * i]
+          range = i === 0 ? ['', ...range] : [...range, scale.VOLscale.invert(unitH - headH) / ihGridNums * i]
           scaleHeight = [...scaleHeight, i * gridH]
         })
       // 反转数组
@@ -1514,7 +1704,7 @@ export default function (param, cb) {
     // => RSI/KDJ/WR
     function renderCurve (G, data, className, scaleProp, d) {
       if (scaleProp === 'BOLLscale') {
-        scale[scaleProp] = scale.priceScale
+        scale[scaleProp] = scale.pricescale
       } else {
         let min = d3.min(data[0], (d) => { return d.value })
         let max = d3.max(data[0], (d) => { return d.value })
@@ -1582,5 +1772,97 @@ export default function (param, cb) {
         line
       )
     }
+  }
+  // => 显示光标
+  function showCousor () {
+    cursorG.attr('opacity', 1)
+    // timeTipG.attr('opacity', 1)
+    // priceTipG.attr('opacity', 1)
+    // floatBox.attr('opacity', 1)
+  }
+  // => 隐藏光标
+  function hideCorsor () {
+    cursorG.attr('opacity', 0)
+  }
+  // => 光标移动时更新光标指示数据
+  function cursorMove ({whichis, x, y, initY}) {
+    if (+cursorG.attr('opacity') !== 1) {
+      return
+    }
+    let invertX = Math.floor(scale.kchartX.invert(x))
+    let cursorY = y + headH
+
+    let index = invertX < store.Kdata.length
+      ? invertX
+      : store.Kdata.length - 1
+    let cursorX = rectSpace + rectWidth / 2 + index * (rectWidth + rectSpace)
+
+    // => 获取光标处上一根k线收盘价
+    let preClose = index + startIndex > 0
+      ? store.data[index + startIndex].close
+      : store.data[0].open
+
+    let currentRect = store.Kdata[index]
+
+    // => 更新光标指示时间
+    let tipTime = df.getDate(currentRect.time.replace(/-/ig, '/'))
+    let newTipTime = ''
+    if (['Day30', 'Day7', 'Day1'].indexOf(store.period) > -1) {
+      newTipTime = df.formatTime(df.timerStyle.Ymd)(tipTime)
+    } else if (['Sec30', 'Sec15'].indexOf(store.period) > -1) {
+      newTipTime = df.formatTime(df.timerStyle.YmdHM)(tipTime)
+    } else {
+      newTipTime = df.formatTime(df.timerStyle.YmdHMS)(tipTime)
+    }
+    let timeTipRw = newTipTime.length * 7
+
+    let timeTipGx = cursorX > timeTipRw / 2
+      ? cursorX < chartW - timeTipRw / 2
+        ? cursorX - timeTipRw / 2
+        : chartW - timeTipRw
+      : 0
+    timeTipG.attr({
+      transform: `translate(${timeTipGx},${chartH})`
+    })
+    timeTipR.attr('width', timeTipRw)
+    timeTipText.attr('dx', timeTipRw / 2)
+      .text(newTipTime)
+
+    // => 更新光标指示纵坐标
+    initY = initY > 1
+      ? initY < unitH - headH - 1
+        ? initY
+        : unitH - headH
+      : 0
+    let priceY = ['VOL', 'MACD', 'VMACD'].indexOf(whichis) > -1
+      ? scale[`${whichis}scale`].invert(unitH - headH - initY)
+      : scale[`${whichis}scale`].invert(initY)
+    priceTipG.attr({
+      transform: `translate(${-lw},${cursorY - 9})`
+    })
+    priceTipText.text(df.formatVal(priceY))
+    df.log('priceTipText', priceTipText)
+
+    df.log('whichis', whichis)
+    // df.log('scale', scale)
+    df.log('unitH', unitH)
+    df.log('priceY', priceY)
+    // df.log('cursorX', cursorX)
+    // df.log('cursorY', cursorY)
+    df.log('initY', initY)
+    // df.log('index', index)
+    // df.log('tipTime', tipTime)
+    // df.log('newTipTime', newTipTime)
+    df.log('preClose', preClose)
+    df.log('currentRect', currentRect)
+    cursorLineX.attr('y1', cursorY)
+      .attr('y2', cursorY)
+    cursorLineY
+      .attr('x1', () => {
+        return cursorX
+      })
+      .attr('x2', () => {
+        return cursorX
+      })
   }
 }

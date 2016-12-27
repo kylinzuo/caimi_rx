@@ -49,6 +49,7 @@ export const timerStyle = {
   Ymd: '%Y/%m/%d',
   md: '%m/%d',
   YmdHM: '%Y/%m/%d %H:%M',
+  YmdHMS: '%Y/%m/%d %H:%M:%S',
   mdHM: '%m/%d %H:%M'
 }
 
@@ -793,4 +794,43 @@ export function drawArcs ({innerR, outerR, sAngle, eAngle}) {
     .outerRadius(outerR)
     .startAngle(sAngle * (Math.PI / 180))
     .endAngle(eAngle * (Math.PI / 180))
+}
+
+/**
+ * 绘制网格
+ * gridG  => 网格容器
+ * svgArgs  => svg参数
+ * hNums => 水平线根数
+ * vNums => 竖直线根数
+ * gridGargs => 网格线参数 width, height, top, bottom, left, right, stroke
+ */
+export function drawSlideGrid (gridG, svgArgs, vNums, gridGargs) {
+  let vArr = getSerialArr(vNums)
+  let w = gridGargs.width
+  let h = gridGargs.height
+
+  // 网格垂直分隔线
+  let update = gridG.selectAll('.verticalLines')
+    .data(vArr)
+  let enter = update.enter()
+  let exit = update.exit()
+  update.attr('stroke', gridGargs.stroke)
+    .attr('opacity', (d, i) => {
+      return i !== 0 && i !== vNums ? 1 : 0
+    })
+    .attr('d', function (d, i) {
+      return `M${(i * (w / vNums))},0L${(i * (w / vNums))},${h}`
+    })
+  enter.append('path')
+    .attr('class', 'verticalLines')
+    .attr('stroke', gridGargs.stroke)
+    .attr('stroke-Width', 1)
+    .attr('fill', 'none')
+    .attr('opacity', (d, i) => {
+      return i !== 0 && i !== vNums ? 1 : 0
+    })
+    .attr('d', function (d, i) {
+      return `M${(i * (w / vNums))},0L${(i * (w / vNums))},${h}`
+    })
+  exit.remove()
 }
