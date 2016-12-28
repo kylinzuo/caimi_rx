@@ -43,6 +43,7 @@ export default {
       newData = data.slice(200)
       param.data = filterData // 绘图数据
       param.period = 'Day1'
+      param.title = '上证指数'
       param.lists = this.lists
       this.tsChart = new RenderKChart(param, this.cb)
     })

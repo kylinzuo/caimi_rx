@@ -33,6 +33,7 @@ let store = {
   WRdata: [], // => WR绘图数据
   BOLLdata: [], // => BOLL绘图数据
   period: 'Day1', // => 绘图周期
+  name: '', // => 股票名称
   MAParam: [5, 10, 20, 30, 60], // => MA移动均线设置参数
   MAVolumeParam: [5, 10, 20],
   MABalanceParam: [5, 10, 20],
@@ -109,6 +110,7 @@ export default function (param, cb) {
   store.WRParam = param.WRParam || store.WRParam
   store.BOLLParam = param.BOLLParam || store.BOLLParam
   store.period = store.period || param.period
+  store.title = store.title || param.title || ''
 
   /**
    * rectWidth => k线实体默认宽度
@@ -214,6 +216,48 @@ export default function (param, cb) {
     'text-anchor': 'end'
   })
 
+  // 浮动提示框
+  let floatBox = svg.append('g')
+    .attr('class', 'floatBox')
+    .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th + headH})`)
+    .attr('opacity', 0)
+
+  df.drawRect(floatBox, {
+    class: 'floatBoxR',
+    x: 0,
+    y: 0,
+    width: 140,
+    height: 264,
+    stroke: colors[param.theme].floatGray,
+    fill: colors[param.theme].floatBg,
+    opacity: 0.5
+  })
+  let floatConf = ['时间:', '开盘:', '最高:', '最低:', '收盘:',
+    '涨跌:', '涨跌幅:', '成交量:', '成交额:', '振幅:', '换手率:']
+  let floatVal = {}
+  floatConf.forEach((d, i) => {
+    df.drawText(floatBox, {
+      'font-family': 'PingFangSC-Regular',
+      'font-size': 14,
+      dx: 8,
+      dy: 17 + 23 * i,
+      stroke: 'none',
+      fill: colors[param.theme].floatTextGray,
+      'pointer-events': 'none',
+      'text-anchor': 'start'
+    }).text(d)
+    floatVal[`index${i}`] = df.drawText(floatBox, {
+      'font-family': 'PingFangSC-Medium',
+      'font-size': 14,
+      dx: 140 - 8,
+      dy: 17 + 23 * i,
+      stroke: 'none',
+      fill: colors[param.theme].floatTextGray,
+      'pointer-events': 'none',
+      'text-anchor': 'end'
+    })
+  })
+
   // => 事件接收区容器
   let EventG = svg.append('g')
     .attr('class', 'EventG')
@@ -244,6 +288,7 @@ export default function (param, cb) {
         store.MAVOLflag = true
       } else if (d === 'BOLL') {
         store.BOLLflag = true
+        store.MAflag = false
       } else {
         return indicatorsLists.indexOf(d) > -1
       }
@@ -513,6 +558,18 @@ export default function (param, cb) {
         h: headH,
         color: colors[svgArgs.theme].headColor
       })
+      // => 添加股票名称
+      df.drawText(KHeadG, {
+        class: 'title',
+        'font-family': 'PingFangSC-Semibold',
+        'font-size': 16,
+        dx: -lw + 8,
+        dy: 18.5,
+        stroke: 'none',
+        fill: colors[param.theme].titleColor,
+        'text-anchor': 'start'
+      })
+      .text(store.title)
       // => 添加设置按钮
       df.drawBtn({
         G: KHeadG,
@@ -540,27 +597,37 @@ export default function (param, cb) {
       .call(df.zoom([0.125, 3], zoom))
       .on('dblclick.zoom', null) // => 阻止默认双击放大事件
       .on('mousedown', function () {
-        if (!brush.status) {
-          d3.select(this).attr('cursor', 'move')
-        }
         // => 阻止默认事件
         d3.event.preventDefault()
         d3.event.stopPropagation()
         // => 缓存鼠标第一次按下时的数据
         cacheCursor(this)
+        // => 判断是否处于画笔状态
+        if (!brush.status) {
+          d3.select(this).attr('cursor', 'move')
+        }
       })
       .on('mouseup', function () {
         d3.select(this).attr('cursor', 'crosshair')
       })
       .call(df.drag(drag))
-      .on('click', () => {
+      .on('click', function () {
         if (!brush.status) {
           cursorFlag = !cursorFlag
         }
         if (cursorFlag) {
-          showCousor()
+          showCursor()
+          // => 初始化光标位置
+          let x = d3.mouse(this)[0]
+          let y = d3.mouse(this)[1]
+          cursorMove({
+            whichis: 'price',
+            x: x,
+            y: y,
+            initY: y
+          })
         } else {
-          hideCorsor()
+          hideCursor()
           return
         }
       })
@@ -857,38 +924,40 @@ export default function (param, cb) {
         .call(df.zoom([0.125, 3], zoom))
         .on('dblclick.zoom', null) // =>  阻止默认双击放大事件
         .on('mousedown', function () {
-          if (!brush.status) {
-            d3.select(this).attr('cursor', 'move')
-          }
           // => 阻止默认事件
           d3.event.preventDefault()
           d3.event.stopPropagation()
+
           // => 缓存鼠标第一次按下时的数据
           cacheCursor(this)
+
+          // => 判断是否处于画笔状态
+          if (!brush.status) {
+            d3.select(this).attr('cursor', 'move')
+          }
         })
         .on('mouseup', function () {
           d3.select(this).attr('cursor', 'crosshair')
         })
         .call(df.drag(drag))
-        .on('click', () => {
+        .on('click', function () {
           if (!brush.status) {
             cursorFlag = !cursorFlag
           }
           if (cursorFlag) {
-            showCousor()
+            showCursor()
+            // => 初始化光标位置
+            let x = d3.mouse(this)[0]
+            let initY = d3.mouse(this)[1]
+            let y = kChartH + i * unitH + initY
+            cursorMove({
+              whichis: `${d}`,
+              x: x,
+              y: y,
+              initY: initY
+            })
           } else {
-            hideCorsor()
-            return
-          }
-        })
-        .on('click', () => {
-          if (!brush.status) {
-            cursorFlag = !cursorFlag
-          }
-          if (cursorFlag) {
-            showCousor()
-          } else {
-            hideCorsor()
+            hideCursor()
             return
           }
         })
@@ -1774,15 +1843,16 @@ export default function (param, cb) {
     }
   }
   // => 显示光标
-  function showCousor () {
+  function showCursor () {
     cursorG.attr('opacity', 1)
-    // timeTipG.attr('opacity', 1)
-    // priceTipG.attr('opacity', 1)
-    // floatBox.attr('opacity', 1)
+    floatBox.attr('opacity', 1)
+    d3.selectAll('.tipTexts').attr('opacity', 1)
   }
   // => 隐藏光标
-  function hideCorsor () {
+  function hideCursor () {
     cursorG.attr('opacity', 0)
+    floatBox.attr('opacity', 0)
+    d3.selectAll('.tipTexts').attr('opacity', 0)
   }
   // => 光标移动时更新光标指示数据
   function cursorMove ({whichis, x, y, initY}) {
@@ -1799,7 +1869,7 @@ export default function (param, cb) {
 
     // => 获取光标处上一根k线收盘价
     let preClose = index + startIndex > 0
-      ? store.data[index + startIndex].close
+      ? store.data[index + startIndex - 1].close
       : store.data[0].open
 
     let currentRect = store.Kdata[index]
@@ -1807,12 +1877,16 @@ export default function (param, cb) {
     // => 更新光标指示时间
     let tipTime = df.getDate(currentRect.time.replace(/-/ig, '/'))
     let newTipTime = ''
+    let floatTipTime = ''
     if (['Day30', 'Day7', 'Day1'].indexOf(store.period) > -1) {
       newTipTime = df.formatTime(df.timerStyle.Ymd)(tipTime)
+      floatTipTime = df.formatTime(df.timerStyle.Ymd)(tipTime)
     } else if (['Sec30', 'Sec15'].indexOf(store.period) > -1) {
       newTipTime = df.formatTime(df.timerStyle.YmdHM)(tipTime)
+      floatTipTime = df.formatTime(df.timerStyle.mdHM)(tipTime)
     } else {
       newTipTime = df.formatTime(df.timerStyle.YmdHMS)(tipTime)
+      floatTipTime = df.formatTime(df.timerStyle.HMS)(tipTime)
     }
     let timeTipRw = newTipTime.length * 7
 
@@ -1829,11 +1903,13 @@ export default function (param, cb) {
       .text(newTipTime)
 
     // => 更新光标指示纵坐标
-    initY = initY > 1
-      ? initY < unitH - headH - 1
-        ? initY
-        : unitH - headH
-      : 0
+    initY = whichis !== 'price'
+      ? initY > 1
+        ? initY < unitH - headH - 1
+          ? initY
+          : unitH - headH
+        : 0
+      : initY
     let priceY = ['VOL', 'MACD', 'VMACD'].indexOf(whichis) > -1
       ? scale[`${whichis}scale`].invert(unitH - headH - initY)
       : scale[`${whichis}scale`].invert(initY)
@@ -1841,28 +1917,164 @@ export default function (param, cb) {
       transform: `translate(${-lw},${cursorY - 9})`
     })
     priceTipText.text(df.formatVal(priceY))
-    df.log('priceTipText', priceTipText)
 
-    df.log('whichis', whichis)
-    // df.log('scale', scale)
-    df.log('unitH', unitH)
-    df.log('priceY', priceY)
-    // df.log('cursorX', cursorX)
-    // df.log('cursorY', cursorY)
-    df.log('initY', initY)
-    // df.log('index', index)
-    // df.log('tipTime', tipTime)
-    // df.log('newTipTime', newTipTime)
-    df.log('preClose', preClose)
-    df.log('currentRect', currentRect)
-    cursorLineX.attr('y1', cursorY)
-      .attr('y2', cursorY)
-    cursorLineY
-      .attr('x1', () => {
-        return cursorX
+    cursorLineX.attr({
+      x1: 0,
+      x2: chartW,
+      y1: cursorY,
+      y2: cursorY
+    })
+    cursorLineY.attr({
+      x1: cursorX,
+      x2: cursorX,
+      y1: th + headH,
+      y2: th + chartH
+    })
+    // => 更新浮动框位置 与 内容
+    floatBox.attr('transform', () => {
+      return x <= chartW / 2
+        ? `translate(${lw + chartW - 140},${th + headH})`
+        : `translate(${lw},${th + headH})`
+    })
+    let floatVals = [
+      floatTipTime,
+      currentRect.open,
+      currentRect.high,
+      currentRect.low,
+      currentRect.close,
+      df.formatVal(currentRect.close - preClose),
+      `${df.formatVal((currentRect.close - preClose) / preClose * 100)}%`,
+      df.formatVal(currentRect.volume),
+      df.formatVal(currentRect.balance)
+    ]
+    floatVals.forEach((d, i) => {
+      floatVal[`index${i}`].text(d)
+        .attr('fill', () => {
+          if (i === 1) {
+            return textColor(currentRect.open - preClose)
+          } else if (i === 2) {
+            return textColor(currentRect.high - preClose)
+          } else if (i === 3) {
+            return textColor(currentRect.low - preClose)
+          } else if ([4, 5, 6].indexOf(i) > -1) {
+            return textColor(currentRect.close - preClose)
+          } else {
+            return textColor()
+          }
+        })
+    })
+    function textColor (val) {
+      return val !== undefined
+        ? val >= 0
+          ? colors[param.theme].floatTextRed
+          : colors[param.theme].floatTextGreen
+        : colors[param.theme].floatTextGray
+    }
+    // => 更新头部指标值
+    let tipData = {
+      MA: [],
+      VOL: [],
+      MACD: [],
+      RSI: [],
+      KDJ: [],
+      BOLL: [],
+      VMACD: [],
+      WR: []
+    }
+    if (store.MAflag) {
+      store.MAdata.forEach((d, i) => {
+        tipData[`MA`].push(`MA${store.MAParam[i]}: ${df.formatVal(d[index].value)}`)
       })
-      .attr('x2', () => {
-        return cursorX
+      // => MA/BOLL显示在同一位置只允许有一个显示
+      d3.selectAll('.MATip').attr('opacity', 1)
+      d3.selectAll('.BOLLTip').attr('opacity', 0)
+      updateHeadTips(d3.select('.KHeadG'), 'MATip', tipData[`MA`])
+    }
+    if (store.BOLLflag) {
+      store.BOLLdata.forEach((d, i) => {
+        let tip = ['BOLL', 'UB', 'LB']
+        tipData[`BOLL`].push(`${tip[i]}: ${df.formatVal(d[index].value)}`)
       })
+      // => MA/BOLL显示在同一位置只允许有一个显示
+      d3.selectAll('.MATip').attr('opacity', 0)
+      d3.selectAll('.BOLLTip').attr('opacity', 1)
+      updateHeadTips(d3.select('.KHeadG'), `BOLLTip`, tipData[`BOLL`])
+    }
+    store.lists.forEach((d, i) => {
+      switch (d) {
+        case 'VOL':
+          if (store.MAVOLflag) {
+            store.MAVolumedata.forEach((data, j) => {
+              tipData[`${d}`].push(`MA${store.MAVolumeParam[j]}: ${df.formatVal(data[index].value)}`)
+            })
+            updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+          }
+          break
+        case 'MACD':
+          store[`${d}data`].forEach((data, j) => {
+            let tip = ['MACD', 'DIF', 'DEA']
+            tipData[`${d}`].push(`${tip[j]}: ${df.formatVal(data[index].value)}`)
+          })
+          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`],
+            textColor(store[`${d}data`][0][index].value))
+          break
+        case 'RSI':
+          store[`${d}data`].forEach((data, j) => {
+            tipData[`${d}`].push(`RSI${store.RSIParam[j]}: ${df.formatVal(data[index].value)}`)
+          })
+          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+          break
+        case 'KDJ':
+          store[`${d}data`].forEach((data, j) => {
+            let tip = ['K', 'D', 'J']
+            tipData[`${d}`].push(`${tip[j]}${store.KDJParam[j]}: ${df.formatVal(data[index].value)}`)
+          })
+          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+          break
+        case 'VMACD':
+          store[`${d}data`].forEach((data, j) => {
+            let tip = ['VMACD', 'DIF', 'DEA']
+            tipData[`${d}`].push(`${tip[j]}: ${df.formatVal(data[index].value)}`)
+          })
+          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`],
+            textColor(store[`${d}data`][0][index].value))
+          break
+        case 'WR':
+          store[`${d}data`].forEach((data, j) => {
+            tipData[`${d}`].push(`WR${store.WRParam[j]}: ${df.formatVal(data[index].value)}`)
+          })
+          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+          break
+        default: break
+      }
+    })
+    function updateHeadTips (G, className, data, firstColor) {
+      let maxLength = d3.max(data, (d) => { return d.length })
+      df.drawTexts(G, className, data, {
+        class: `${className} tipTexts`,
+        'font-family': 'PingFangSC-Medium',
+        'font-size': 12,
+        'text-anchor': 'start',
+        stroke: 'none',
+        dx: 70,
+        dy: 16.5,
+        fill: (d, i) => {
+          if (firstColor !== undefined) {
+            return i === 0
+            ? firstColor
+            : colors[svgArgs.theme].curveColor[i - 1]
+          } else {
+            return colors[svgArgs.theme].curveColor[i]
+          }
+        },
+        x: (d, i) => {
+          return i > 0
+            ? maxLength * 8 * i
+            : 0
+        }
+      }, (d, i) => {
+        return d
+      })
+    }
   }
 }

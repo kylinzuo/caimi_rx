@@ -50,7 +50,8 @@ export const timerStyle = {
   md: '%m/%d',
   YmdHM: '%Y/%m/%d %H:%M',
   YmdHMS: '%Y/%m/%d %H:%M:%S',
-  mdHM: '%m/%d %H:%M'
+  mdHM: '%m/%d %H:%M',
+  HMS: '%d %H:%M:%S'
 }
 
 // 格式化时间

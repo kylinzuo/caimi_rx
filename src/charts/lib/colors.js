@@ -29,6 +29,7 @@ colors[0] = {
 export let kcolors = []
 kcolors[0] = {
   bgColor: '#fff', // 背景色
+  titleColor: '#333333', // 股票标题颜色
   headColor: '#fff', // 指标区头部颜色
   settingBtnColor: '#B2B2B2', // 设置按钮颜色
   btnHighlight: 'red', // 按钮高亮颜色
@@ -43,5 +44,10 @@ kcolors[0] = {
   cursorBlue: '#307CD5', // 十字光标颜色
   tipBlue: '#D4E8FF', // 十字光标提示框颜色
   tipBorderBlue: '#7CB0EC', // 十字光标提示框边框颜色
-  tipTextBlue: '#146BCF' // 十字光标提示框字体颜色
+  tipTextBlue: '#146BCF', // 十字光标提示框字体颜色
+  floatBg: '#fff', // 浮动框背景色
+  floatGray: '#D5D5D5', // 浮动框灰色
+  floatTextGray: '#535353', // 浮动框灰色字体
+  floatTextRed: '#F34A47', // 浮动框红色色字体
+  floatTextGreen: '#14C041' // 浮动框绿色色字体
 }
