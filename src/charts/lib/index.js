@@ -539,7 +539,7 @@ export function drawkGrid (G, vNums, rectW, rectS, gridGargs) {
  * 绘制K线上下引线
  * G => 容器
  */
-export function drawkLeads ({G, data, className, rectWidth, rectSpace, scaleY, red, green}) {
+export function drawkLeads ({G, data, className, direction, rectWidth, rectSpace, scaleY, red, green}) {
   // k线上下引线部分
   let update = G.selectAll(`.${className}`)
     .data(data)
@@ -551,13 +551,21 @@ export function drawkLeads ({G, data, className, rectWidth, rectSpace, scaleY, r
       return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
     })
     .attr('y1', (d, i) => {
-      return scaleY(d.high)
+      return direction === 'up'
+        ? scaleY(d.high)
+        : scaleY(d.low)
     })
     .attr('x2', (d, i) => {
       return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
     })
     .attr('y2', (d, i) => {
-      return scaleY(d.low)
+      return direction === 'up'
+        ? d.close >= d.open
+          ? scaleY(d.close)
+          : scaleY(d.open)
+        : d.close >= d.open
+          ? scaleY(d.open)
+          : scaleY(d.close)
     })
     .attr('stroke', (d, i) => {
       if (d.close > d.open) {
@@ -582,13 +590,21 @@ export function drawkLeads ({G, data, className, rectWidth, rectSpace, scaleY, r
       return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
     })
     .attr('y1', (d, i) => {
-      return scaleY(d.high)
+      return direction === 'up'
+        ? scaleY(d.high)
+        : scaleY(d.low)
     })
     .attr('x2', (d, i) => {
       return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
     })
     .attr('y2', (d, i) => {
-      return scaleY(d.low)
+      return direction === 'up'
+        ? d.close >= d.open
+          ? scaleY(d.close)
+          : scaleY(d.open)
+        : d.close >= d.open
+          ? scaleY(d.open)
+          : scaleY(d.close)
     })
     .attr('stroke-width', 1)
     .attr('stroke', (d, i) => {
@@ -643,20 +659,49 @@ export function drawkRect ({G, data, className, rectWidth, rectSpace, scaleY, re
         return 1
       }
     })
+    .attr('stroke', (d, i) => {
+      if (d.close > d.open) {
+        return rectWidth < 2
+          ? 'none'
+          : red
+      } else if (d.close < d.open) {
+        return 'none'
+      } else {
+        if (i !== 0) {
+          if (data[i - 1].close <= d.close) {
+            return rectWidth < 2
+              ? 'none'
+              : red
+          } else {
+            return 'none'
+          }
+        } else {
+          return rectWidth < 2
+            ? 'none'
+            : red
+        }
+      }
+    })
     .attr('fill', (d, i) => {
       if (d.close > d.open) {
-        return red
+        return rectWidth < 2
+          ? red
+          : 'none'
       } else if (d.close < d.open) {
         return green
       } else {
         if (i !== 0) {
           if (data[i - 1].close <= d.close) {
-            return red
+            return rectWidth < 2
+              ? red
+              : 'none'
           } else {
             return green
           }
         } else {
-          return red
+          return rectWidth < 2
+            ? red
+            : 'none'
         }
       }
     })
@@ -682,21 +727,49 @@ export function drawkRect ({G, data, className, rectWidth, rectSpace, scaleY, re
         return 1
       }
     })
-    .attr('stroke', 'none')
+    .attr('stroke', (d, i) => {
+      if (d.close > d.open) {
+        return rectWidth < 2
+          ? 'none'
+          : red
+      } else if (d.close < d.open) {
+        return 'none'
+      } else {
+        if (i !== 0) {
+          if (data[i - 1].close <= d.close) {
+            return rectWidth < 2
+              ? 'none'
+              : red
+          } else {
+            return 'none'
+          }
+        } else {
+          return rectWidth < 2
+            ? 'none'
+            : red
+        }
+      }
+    })
     .attr('fill', (d, i) => {
       if (d.close > d.open) {
-        return red
+        return rectWidth < 2
+          ? red
+          : 'none'
       } else if (d.close < d.open) {
         return green
       } else {
         if (i !== 0) {
           if (data[i - 1].close <= d.close) {
-            return red
+            return rectWidth < 2
+              ? red
+              : 'none'
           } else {
             return green
           }
         } else {
-          return red
+          return rectWidth < 2
+            ? red
+            : 'none'
         }
       }
     })

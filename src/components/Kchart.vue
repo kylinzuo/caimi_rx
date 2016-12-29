@@ -34,9 +34,10 @@ export default {
     let param = {}
     param.id = 'kChartContainer' // 画布容器
     param.theme = 0 // 颜色主题
+    param.totalShares = 1378091733 // 总股本
     // 000001.SS 000001.SZ 000625.SZ 002312.SZ {symbol, period, startTime, lastNPoints = 0}
     getKchartService({
-      symbol: '000001.SS',
+      symbol: '002312.SZ',
       period: 'Day1'
     }, data => {
       filterData = data.slice(0, 200)
@@ -51,7 +52,9 @@ export default {
   methods: {
     refreshChart () {
       console.log('refreshChart')
-      filterData.push(newData.shift())
+      if (newData.length > 0) {
+        filterData.push(newData.shift())
+      }
       this.tsChart.refreshChart(filterData)
     },
     checkLists (val) {

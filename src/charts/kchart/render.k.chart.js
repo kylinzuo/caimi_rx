@@ -111,6 +111,7 @@ export default function (param, cb) {
   store.BOLLParam = param.BOLLParam || store.BOLLParam
   store.period = store.period || param.period
   store.title = store.title || param.title || ''
+  store.totalShares = store.totalShares || param.totalShares || 1
 
   /**
    * rectWidth => k线实体默认宽度
@@ -140,10 +141,74 @@ export default function (param, cb) {
     'fill': colors[svgArgs.theme].bgColor
   })
 
-  // 添加绘图容器
+  // => 添加绘图容器
   let svgG = svg.append('g')
     .attr('class', 'svgG')
     .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
+
+  // => k线区最大最小值容器
+  let arrowG = svg.append('g')
+    .attr('class', 'arrowG')
+    .attr('transform', `translate(${lw},${th})`)
+
+  // 定义箭头标识
+  let defs = arrowG.append('defs')
+
+  let arrowMarker = defs.append('marker')
+    .attr('id', 'arrow')
+    .attr('markerUnits', 'strokeWidth')
+    .attr('markerWidth', '12')
+    .attr('markerHeight', '12')
+    .attr('viewBox', '0 0 12 12')
+    .attr('refX', '6')
+    .attr('refY', '6')
+    .attr('orient', 'auto')
+
+  let arrowPath = 'M2,2 L10,6 L2,10 L6,6 L2,2'
+
+  arrowMarker.append('path')
+    .attr('d', arrowPath)
+    .attr('fill', colors[svgArgs.theme].arrowColor)
+
+  // K线图中箭头指向最大最小值
+  let maxPriceG = arrowG.append('g')
+  let minPriceG = arrowG.append('g')
+
+  let maxPriceL = maxPriceG.append('line')
+    .attr('x1', 0)
+    .attr('y1', 0)
+    .attr('x2', 13)
+    .attr('y2', 4)
+    .attr('stroke', colors[svgArgs.theme].arrowColor)
+    .attr('stroke-width', 1)
+    .attr('marker-end', 'url(#arrow)')
+
+  let maxPriceText = maxPriceG.append('text')
+    .attr('font-family', 'PingFangSC-Medium')
+    .attr('font-size', 12)
+    .attr('stroke-width', 0)
+    .attr('stroke', 'none')
+    .attr('fill', colors[svgArgs.theme].arrowColor)
+    .attr('dx', 0)
+    .attr('dy', 5)
+
+  let minPriceL = minPriceG.append('line')
+    .attr('x1', 0)
+    .attr('y1', 0)
+    .attr('x2', 13)
+    .attr('y2', -2)
+    .attr('stroke', colors[svgArgs.theme].arrowColor)
+    .attr('stroke-width', 1)
+    .attr('marker-end', 'url(#arrow)')
+
+  let minPriceText = minPriceG.append('text')
+    .attr('font-family', 'PingFangSC-Medium')
+    .attr('font-size', 12)
+    .attr('stroke-width', 0)
+    .attr('stroke', 'none')
+    .attr('fill', colors[svgArgs.theme].arrowColor)
+    .attr('dx', 0)
+    .attr('dy', 5)
 
   // => 十字光标
   let cursorG = svg.append('g')
@@ -230,7 +295,7 @@ export default function (param, cb) {
     height: 264,
     stroke: colors[param.theme].floatGray,
     fill: colors[param.theme].floatBg,
-    opacity: 0.5
+    opacity: 0.8
   })
   let floatConf = ['时间:', '开盘:', '最高:', '最低:', '收盘:',
     '涨跌:', '涨跌幅:', '成交量:', '成交额:', '振幅:', '换手率:']
@@ -792,7 +857,11 @@ export default function (param, cb) {
           x: 4,
           y: 16.5
         })
-        .text(d === 'VOL' ? indicators1ToggleArr[toggleArr1index] : d)
+        .text(() => {
+          return d !== 'VOL'
+            ? `${d}(${store[`${d}Param`]})`
+            : indicators1ToggleArr[toggleArr1index]
+        })
         // => 添加设置按钮
         df.drawBtn({
           G: hg,
@@ -1082,6 +1151,10 @@ export default function (param, cb) {
   function drag () {
     // => 判断是否处于画笔状态
     if (!brush.status) {
+      // => 拖动状态下关闭十字光标
+      cursorFlag = false
+      hideCursor()
+
       let shift = d3.event.x - cursor.x
       if (shift > 0) {
         let shiftNum = Math.floor(Math.abs(shift) / (rectWidth + rectSpace))
@@ -1380,6 +1453,58 @@ export default function (param, cb) {
       stroke: colors[svgArgs.theme].gridGray
     })
 
+    /**
+     * 获取K线中最大最小值及其位置
+     */
+    let maxPriceTip = {}
+    let minPriceTip = {}
+    maxPriceTip.val = store.Kdata[0].high
+    maxPriceTip.index = 0
+    minPriceTip.val = store.Kdata[0].low
+    minPriceTip.index = 0
+    for (let i = 1; i < store.Kdata.length; i++) {
+      if (store.Kdata[i].high >= maxPriceTip.val) {
+        maxPriceTip.val = store.Kdata[i].high
+        maxPriceTip.index = i
+      }
+      if (store.Kdata[i].low <= minPriceTip.val) {
+        minPriceTip.val = store.Kdata[i].low
+        minPriceTip.index = i
+      }
+    }
+    // 标注K线最大最小值
+    let maxPriceD = `${maxPriceTip.val}`.length * 6
+    let maxPriceX = rectSpace + rectWidth / 2 + maxPriceTip.index * (rectWidth + rectSpace)
+    let maxPriceGX = maxPriceX >= chartW / 2 ? maxPriceX - 17 : maxPriceX + 4
+    maxPriceG.attr('transform', `translate(${maxPriceGX},${headH + 5})`)
+    maxPriceL
+      .attr('x1', () => {
+        return maxPriceX >= chartW / 2 ? 0 : 13
+      })
+      .attr('x2', () => {
+        return maxPriceX >= chartW / 2 ? 13 : 0
+      })
+    maxPriceText.text(maxPriceTip.val)
+      .attr('dx', () => {
+        return maxPriceX >= chartW / 2 ? -maxPriceD : 15
+      })
+
+    let minPriceD = `${minPriceTip.val}`.length * 6
+    let minPriceX = rectSpace + rectWidth / 2 + minPriceTip.index * (rectWidth + rectSpace)
+    let minPriceGX = minPriceX >= chartW / 2 ? minPriceX - 17 : minPriceX + 4
+    minPriceG.attr('transform', `translate(${minPriceGX},${kChartH - 8})`)
+    minPriceL
+      .attr('x1', () => {
+        return minPriceX >= chartW / 2 ? 0 : 13
+      })
+      .attr('x2', () => {
+        return minPriceX >= chartW / 2 ? 13 : 0
+      })
+    minPriceText.text(minPriceTip.val)
+      .attr('dx', () => {
+        return minPriceX >= chartW / 2 ? -minPriceD : 15
+      })
+
     // => k线横坐标比例尺
     scale.kchartX = d3.scale.linear()
       .domain([0, rectNum])
@@ -1394,11 +1519,24 @@ export default function (param, cb) {
       scaleY: scale.pricescale
     })
 
-    // => 绘制k线上下引线
+    // => 绘制k线上引线
     df.drawkLeads({
       G: d3.select('.Kchart'),
       data: store.Kdata,
-      className: 'kLine',
+      className: 'kLineUp',
+      direction: 'up',
+      rectWidth: rectWidth,
+      rectSpace: rectSpace,
+      scaleY: scale.pricescale,
+      red: colors[svgArgs.theme].kRed,
+      green: colors[svgArgs.theme].kGreen
+    })
+    // => 绘制k线上引线
+    df.drawkLeads({
+      G: d3.select('.Kchart'),
+      data: store.Kdata,
+      className: 'kLineDown',
+      direction: 'down',
       rectWidth: rectWidth,
       rectSpace: rectSpace,
       scaleY: scale.pricescale,
@@ -1945,7 +2083,11 @@ export default function (param, cb) {
       df.formatVal(currentRect.close - preClose),
       `${df.formatVal((currentRect.close - preClose) / preClose * 100)}%`,
       df.formatVal(currentRect.volume),
-      df.formatVal(currentRect.balance)
+      df.formatVal(currentRect.balance),
+      `${df.formatVal((currentRect.high - currentRect.low) / preClose * 100)}%`,
+      `${df.formatVal((currentRect.volume < store.totalShares
+          ? currentRect.volume * 100 / store.totalShares * 100
+          : 0))}%`
     ]
     floatVals.forEach((d, i) => {
       floatVal[`index${i}`].text(d)
@@ -2056,7 +2198,7 @@ export default function (param, cb) {
         'font-size': 12,
         'text-anchor': 'start',
         stroke: 'none',
-        dx: 70,
+        dx: 100,
         dy: 16.5,
         fill: (d, i) => {
           if (firstColor !== undefined) {
