@@ -17,12 +17,20 @@ import BOLLCalc from '../indicators/class.KChart.indicator.polyline.BOLL'
  */
 // => 数据仓库
 let store = {
+  period: 'Day1', // => 绘图周期
+  title: '', // => 股票名称
+  sourceLists: [], // => 原始指标显示列表
+  lists: [], // => 指标显示列表
   data: [], // => 绘图原始数据
+  /**
+   * 均线／布林线 是否显示标志
+   */
   MAflag: false, // => MA 移动平局线是否显示标志
   MAVOLflag: false, // => 成交量／成交额 是否显示标志
   BOLLflag: false, // => 布林线是否显示标志
-  sourceLists: [], // => 原始指标显示列表
-  lists: [], // => 指标显示列表
+  /**
+   * 绘图数据
+   */
   Kdata: [], // => k线绘图数据
   MAdata: [], // => MA移动均线绘图数据
   MAVolumedata: [], // => 成交量／成交额 均线绘图数据
@@ -32,8 +40,9 @@ let store = {
   KDJdata: [], // => KDJ绘图数据
   WRdata: [], // => WR绘图数据
   BOLLdata: [], // => BOLL绘图数据
-  period: 'Day1', // => 绘图周期
-  name: '', // => 股票名称
+  /**
+   * 指标计算参数
+   */
   MAParam: [5, 10, 20, 30, 60], // => MA移动均线设置参数
   MAVolumeParam: [5, 10, 20],
   MABalanceParam: [5, 10, 20],
@@ -87,10 +96,16 @@ let cursor = {
 let currentScale = 1.0
 
 export default function (param, cb) {
+  if (!(param.data instanceof Array)) {
+    throw new Error('param.data is not Array')
+  }
+  if (param.data.length < 1) {
+    throw new Error('param.data.length can not be empty')
+  }
   // => 获取svg尺寸
   let svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
 
-  // 图形四周宽度
+  // => 图形四周宽度
   let lw = 56
   let rw = 0
   let th = 0
@@ -99,6 +114,9 @@ export default function (param, cb) {
   let chartH = svgArgs.height - th - bh
 
   // => 缓存传入的绘图数据
+  store.period = param.period || store.period
+  store.title = param.title || store.title || ''
+  store.totalShares = param.totalShares || store.totalShares || 1
   store.data = param.data.sort(df.compare('time'))
   store.MAParam = param.MAParam || store.MAParam
   store.MAVolumeParam = param.MAVolumeParam || store.MAVolumeParam
@@ -109,9 +127,6 @@ export default function (param, cb) {
   store.KDJParam = param.KDJParam || store.KDJParam
   store.WRParam = param.WRParam || store.WRParam
   store.BOLLParam = param.BOLLParam || store.BOLLParam
-  store.period = store.period || param.period
-  store.title = store.title || param.title || ''
-  store.totalShares = store.totalShares || param.totalShares || 1
 
   /**
    * rectWidth => k线实体默认宽度
@@ -379,7 +394,9 @@ export default function (param, cb) {
       ? Math.floor(chartW / unitW)
       : Math.floor(chartW / unitW) - 1
 
-    vGridNums = Math.max(tempVGridNums, 1)
+    vGridNums = store.data.length <= Math.floor(chartW / 2 + 24)
+      ? 2
+      : Math.max(tempVGridNums, 1)
 
     // => 添加k线区容器
     if (!document.querySelector('.KHeadG')) {
@@ -409,6 +426,7 @@ export default function (param, cb) {
       floorG.append('g')
         .attr('class', 'slideGridG')
         .attr('transform', `translate(0, ${19})`)
+
       // => 滑动条容器
       let slideG = floorG.append('g')
         .attr('class', 'slideG')
@@ -1018,7 +1036,7 @@ export default function (param, cb) {
             // => 初始化光标位置
             let x = d3.mouse(this)[0]
             let initY = d3.mouse(this)[1]
-            let y = kChartH + i * unitH + initY
+            let y = kChartH + store.lists.indexOf(d) * unitH + initY
             cursorMove({
               whichis: `${d}`,
               x: x,
@@ -1033,7 +1051,7 @@ export default function (param, cb) {
         .on('mousemove', function () {
           let x = d3.mouse(this)[0]
           let initY = d3.mouse(this)[1]
-          let y = kChartH + i * unitH + initY
+          let y = kChartH + store.lists.indexOf(d) * unitH + initY
           cursorMove({
             whichis: `${d}`,
             x: x,
@@ -1374,14 +1392,13 @@ export default function (param, cb) {
     slideTimeArr = []
     let indexGap = store.data.length / vGridNums
     for (let i = 0; i < vGridNums; i++) {
-      if (i * indexGap < store.data.length) {
+      if (Math.round(i * indexGap) < store.data.length) {
         slideTimeArr.push(store.data[Math.round(i * indexGap)].time)
       } else {
         break
       }
     }
     slideTimeArr.push(store.data[store.data.length - 1].time)
-
     // => 绘制图形
     renderChart()
   }
@@ -1403,7 +1420,7 @@ export default function (param, cb) {
     let slideUnitW = chartW / store.data.length
     slideMove({
       rectX: startIndex * slideUnitW,
-      rectW: (endIndex - startIndex + 1) * slideUnitW
+      rectW: (endIndex - startIndex) * slideUnitW
     })
     // => 更新滑动条底部时间
     df.drawTexts(d3.select('.slideGridG'), 'xSlideTime', slideTimeArr, {
@@ -1510,8 +1527,27 @@ export default function (param, cb) {
       .domain([0, rectNum])
       .range([0, chartW])
     // => k线比例尺
-    let minPrice = d3.min(store.Kdata, (d) => { return d.low })
-    let maxPrice = d3.max(store.Kdata, (d) => { return d.high })
+    let minPrice = df.min(store.Kdata, 'low')
+    let maxPrice = df.max(store.Kdata, 'high')
+    /**
+     * 计算k线区最大最小值
+     */
+    // if (store.MAflag) {
+    //   store.MAdata.forEach((d) => {
+    //     let min = df.min(d, 'value')
+    //     let max = df.max(d, 'value')
+    //     minPrice = minPrice <= min ? minPrice : min
+    //     maxPrice = maxPrice >= max ? maxPrice : max
+    //   })
+    // }
+    // if (store.BOLLflag) {
+    //   store.BOLLdata.forEach((d) => {
+    //     let min = df.min(d, 'value')
+    //     let max = df.max(d, 'value')
+    //     minPrice = minPrice <= min ? minPrice : min
+    //     maxPrice = maxPrice >= max ? maxPrice : max
+    //   })
+    // }
     scale.pricescale = df.linear([minPrice, maxPrice], [kChartH - headH - 11, 11])
     let line = df.kLine({
       rectWidth: rectWidth,

@@ -31,21 +31,22 @@ export default {
     }
   },
   mounted () {
-    let param = {}
-    param.id = 'kChartContainer' // 画布容器
-    param.theme = 0 // 颜色主题
-    param.totalShares = 1378091733 // 总股本
     // 000001.SS 000001.SZ 000625.SZ 002312.SZ {symbol, period, startTime, lastNPoints = 0}
     getKchartService({
       symbol: '002312.SZ',
-      period: 'Day1'
+      period: 'Min1'
     }, data => {
       filterData = data.slice(0, 200)
       newData = data.slice(200)
-      param.data = filterData // 绘图数据
-      param.period = 'Day1'
-      param.title = '上证指数'
-      param.lists = this.lists
+      let param = {
+        id: 'kChartContainer', // 画布容器
+        theme: 0, // 颜色主题
+        title: '上证指数', // 股票名称
+        period: 'Min1', // 周期
+        lists: this.lists, // 指标列表
+        totalShares: 1378091733, // 总股本
+        data: filterData // k线数据
+      }
       this.tsChart = new RenderKChart(param, this.cb)
     })
   },
