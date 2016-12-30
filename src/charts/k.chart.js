@@ -13,7 +13,7 @@
  * @data 新的绘图数据
  * @data return []
  * kChart.refreshChart(data)
- * 调用方法 updateArgs 更新指标参数
+ * 调用方法 updateArgs 指标参数更新刷新视图
  * kChart.updateArgs(data) data格式{type: 'setting', data: 'MACD', args: [12, 26, 9]}
  * @config mode 模式选择 默认模式0 九宫格模式1 简版模式2
  * @config theme 预留颜色主题 默认为白色主题0
@@ -52,5 +52,11 @@ export default class RenderKChart {
    */
   updateIndicators (lists) {
     this.kChart.updateIndicators(lists)
+  }
+  /**
+   * 指标参数更新刷新视图
+   */
+  updateArgs (data) {
+    this.kChart.updateArgs(data)
   }
 }

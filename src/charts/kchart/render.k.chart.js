@@ -421,7 +421,7 @@ export default function ({param, config, cb}) {
       ? Math.floor(chartW / unitW)
       : Math.floor(chartW / unitW) - 1
 
-    vGridNums = store.data.length <= Math.floor(chartW / 2 + 24)
+    vGridNums = store.data.length <= Math.floor(chartW / (2 + 24))
       ? 2
       : Math.max(tempVGridNums, 1)
 
@@ -842,7 +842,10 @@ export default function ({param, config, cb}) {
       // => 回调函数 通知弹出设置模态框
       cb({
         type: 'setting',
-        data: store.MAflag ? 'MA' : 'BOLL'
+        data: store.MAflag ? 'MA' : 'BOLL',
+        args: store.MAflag
+          ? Object.assign([], store[`MAParam`])
+          : Object.assign([], store[`BOLLParam`])
       })
     })
 
@@ -976,7 +979,12 @@ export default function ({param, config, cb}) {
             // => 回调函数 通知弹出设置模态框
             cb({
               type: 'setting',
-              data: d
+              data: d,
+              args: d === `VOL`
+                ? indicators1ToggleArrType[toggleArr1index] === `volume`
+                  ? Object.assign([], store[`MAVolumeParam`])
+                  : Object.assign([], store[`MABalanceParam`])
+                : Object.assign([], store[`${d}Param`])
             })
           })
           // => 关闭指示框按钮

@@ -56,8 +56,8 @@ export default {
         // title: false // 是否显示股票名称
       }
       this.kChart = new RenderKChart({
-        param: param,
-        config: config,
+        param,
+        config,
         cb: this.cb})
     })
   },
