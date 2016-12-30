@@ -13,6 +13,8 @@
  * @data 新的绘图数据
  * @data return []
  * kChart.refreshChart(data)
+ * 调用方法 updateArgs 更新指标参数
+ * kChart.updateArgs(data) data格式{type: 'setting', data: 'MACD', args: [12, 26, 9]}
  * @config mode 模式选择 默认模式0 九宫格模式1 简版模式2
  * @config theme 预留颜色主题 默认为白色主题0
  * @config cursorInteract 是否允许光标交互 默认允许

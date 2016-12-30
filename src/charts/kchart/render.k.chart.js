@@ -1161,6 +1161,12 @@ export default function ({param, config, cb}) {
     dataFilter()
   }
 
+  // => 更新指标参数
+  this.updateArgs = function (data) {
+    store[`${data.args}Param`]
+    dataFilter()
+  }
+
   /**
    * 缩放事件处理函数
    */
