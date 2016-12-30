@@ -12,108 +12,110 @@ import KDJCalc from '../indicators/class.IndicatorBox.indicator.polyline.KDJ'
 import WRCalc from '../indicators/class.IndicatorBox.indicator.polyline.WR'
 import BOLLCalc from '../indicators/class.KChart.indicator.polyline.BOLL'
 
-/**
- * 定义全局变量
- */
-// => 数据仓库
-let store = {
-  period: 'Day1', // => 绘图周期
-  title: '', // => 股票名称
-  sourceLists: [], // => 原始指标显示列表
-  lists: [], // => 指标显示列表
-  data: [], // => 绘图原始数据
+export default function ({param, config, cb}) {
   /**
-   * 均线／布林线 是否显示标志
+   * 定义全局变量
    */
-  MAflag: false, // => MA 移动平局线是否显示标志
-  MAVOLflag: false, // => 成交量／成交额 是否显示标志
-  BOLLflag: false, // => 布林线是否显示标志
-  /**
-   * 绘图数据
-   */
-  Kdata: [], // => k线绘图数据
-  MAdata: [], // => MA移动均线绘图数据
-  MAVolumedata: [], // => 成交量／成交额 均线绘图数据
-  MACDdata: [], // => MACD绘图数据
-  VMACDdata: [], // => VMACD绘图数据
-  RSIdata: [], // => RSI绘图数据
-  KDJdata: [], // => KDJ绘图数据
-  WRdata: [], // => WR绘图数据
-  BOLLdata: [], // => BOLL绘图数据
-  /**
-   * 指标计算参数
-   */
-  MAParam: [5, 10, 20, 30, 60], // => MA移动均线设置参数
-  MAVolumeParam: [5, 10, 20],
-  MABalanceParam: [5, 10, 20],
-  MACDParam: [12, 26, 9],
-  VMACDParam: [12, 26, 9],
-  RSIParam: [6, 12, 24],
-  KDJParam: [9, 3, 3],
-  WRParam: [10, 6],
-  BOLLParam: [20]
-}
+  // => 数据仓库
+  let store = {
+    period: 'Day1', // => 绘图周期
+    title: '', // => 股票名称
+    sourceLists: [], // => 原始指标显示列表
+    lists: [], // => 指标显示列表
+    data: [], // => 绘图原始数据
+    /**
+     * 均线／布林线 是否显示标志
+     */
+    MAflag: false, // => MA 移动平局线是否显示标志
+    MAVOLflag: false, // => 成交量／成交额 是否显示标志
+    BOLLflag: false, // => 布林线是否显示标志
+    /**
+     * 绘图数据
+     */
+    Kdata: [], // => k线绘图数据
+    MAdata: [], // => MA移动均线绘图数据
+    MAVolumedata: [], // => 成交量／成交额 均线绘图数据
+    MACDdata: [], // => MACD绘图数据
+    VMACDdata: [], // => VMACD绘图数据
+    RSIdata: [], // => RSI绘图数据
+    KDJdata: [], // => KDJ绘图数据
+    WRdata: [], // => WR绘图数据
+    BOLLdata: [], // => BOLL绘图数据
+    /**
+     * 指标计算参数
+     */
+    MAParam: [5, 10, 20, 30, 60], // => MA移动均线设置参数
+    MAVolumeParam: [5, 10, 20],
+    MABalanceParam: [5, 10, 20],
+    MACDParam: [12, 26, 9],
+    VMACDParam: [12, 26, 9],
+    RSIParam: [6, 12, 24],
+    KDJParam: [9, 3, 3],
+    WRParam: [10, 6],
+    BOLLParam: [20]
+  }
 
-// => 设置默认最多能显示哪些指标 如果增加新的指标时需要在此添加新的指标名称
-let indicatorsLists = ['VOL', 'MACD', 'RSI', 'KDJ', 'VMACD', 'WR']
+  // => 定义自定义配置参数
+  let conf = {
+    mode: 0, // => 默认模式0 九宫格模式1
+    theme: 0, // => 默认白色颜色主题0
+    scrollBar: true, // 是否显示底部滑动条
+    cursorInteract: true, // 是否允许出现光标交互 默认允许
+    dragZoom: true, // 是否允许拖拽与缩放 默认允许
+    settingBtn: true, // 是否显示设置按钮 默认显示
+    title: true // 是否显示股票名称 默认显示
+  }
 
-// => k线区高度&各指标区高度
-let kChartH
-let unitH
-// => 每一区域头部高度
-let headH = 25
-// => 水平网格数量&竖直网格数量
-let khGridNums = 6 // => K线区
-let ihGridNums = 4 // => 指标区
-let vGridNums = 8
-// => 时间坐标轴数据
-let timeArr = []
-// => 滑动条时间轴数据
-let slideTimeArr = []
+  // => 设置默认最多能显示哪些指标 如果增加新的指标时需要在此添加新的指标名称
+  let indicatorsLists = ['VOL', 'MACD', 'RSI', 'KDJ', 'VMACD', 'WR']
 
-// => 存储所有需要用到的比例尺 便于交互时取用
-let scale = {}
+  // => k线区高度&各指标区高度
+  let kChartH
+  let unitH
+  // => 每一区域头部高度
+  let headH = 25
+  // => 水平网格数量&竖直网格数量
+  let khGridNums = 6 // => K线区
+  let ihGridNums = 4 // => 指标区
+  let vGridNums = 8
+  // => 时间坐标轴数据
+  let timeArr = []
+  // => 滑动条时间轴数据
+  let slideTimeArr = []
 
-// => 坐标轴dom数据, 坐标轴实时更新需要该数据
-let axis = {}
+  // => 存储所有需要用到的比例尺 便于交互时取用
+  let scale = {}
 
-// => 成交量／成交额 可切换指标
-let indicators1ToggleArr = ['成交量', '成交额']
-let indicators1ToggleArrType = ['volume', 'balance']
-let toggleArr1index = 0
-let cursorFlag = false
+  // => 坐标轴dom数据, 坐标轴实时更新需要该数据
+  let axis = {}
 
-// => 画笔工具对象
-let brush = {
-  status: false, // 是否进入画状体
-  type: '' // 画笔类型 线段 折线 ...
-}
-let cursor = {
-  x: 0,
-  y: 0
-}
-// => 缩放大小初始值
-let currentScale = 1.0
+  // => 成交量／成交额 可切换指标
+  let indicators1ToggleArr = ['成交量', '成交额']
+  let indicators1ToggleArrType = ['volume', 'balance']
+  let toggleArr1index = 0
+  let cursorFlag = false
 
-export default function (param, cb) {
+  // => 画笔工具对象
+  let brush = {
+    status: false, // 是否进入画状体
+    type: '' // 画笔类型 线段 折线 ...
+  }
+  let cursor = {
+    x: 0,
+    y: 0
+  }
+  // => 缩放大小初始值
+  let currentScale = 1.0
   if (!(param.data instanceof Array)) {
     throw new Error('param.data is not Array')
   }
   if (param.data.length < 1) {
     throw new Error('param.data.length can not be empty')
   }
-  // => 获取svg尺寸
-  let svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
 
-  // => 图形四周宽度
-  let lw = 56
-  let rw = 0
-  let th = 0
-  let bh = 46
-  let chartW = svgArgs.width - lw - rw
-  let chartH = svgArgs.height - th - bh
-
-  // => 缓存传入的绘图数据
+  /**
+   * 缓存传入的绘图数据
+   */
   store.period = param.period || store.period
   store.title = param.title || store.title || ''
   store.totalShares = param.totalShares || store.totalShares || 1
@@ -129,10 +131,38 @@ export default function (param, cb) {
   store.BOLLParam = param.BOLLParam || store.BOLLParam
 
   /**
+   * 缓存配置参数
+   */
+  conf.mode = config.mode !== undefined ? config.mode : conf.mode
+  conf.theme = config.theme !== undefined ? config.theme : conf.theme
+  conf.scrollBar = config.scrollBar === false ? config.scrollBar : conf.scrollBar
+  conf.cursorInteract = config.cursorInteract === false
+    ? config.cursorInteract
+    : conf.cursorInteract
+  conf.dragZoom = config.dragZoom === false ? config.dragZoom : conf.dragZoom
+  conf.settingBtn = config.settingBtn === false ? config.settingBtn : conf.settingBtn
+  conf.title = config.title === false ? config.title : conf.title
+  df.log('conf', conf)
+  /**
    * rectWidth => k线实体默认宽度
    * rectNum => 行情区显示K线的数量
    * rectSpace => k线实体之间的距离
    */
+
+  // => 获取svg尺寸
+  let svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
+
+  // => 更新每一区域头部高度
+  headH = conf.title === true ? 25 : 0
+  // => 图形四周宽度
+  let lw = 56
+  let rw = 0
+  let th = 0
+  let bh = conf.scrollBar === true ? 46 : 18
+  let chartW = svgArgs.width - lw - rw
+  let chartH = svgArgs.height - th - bh
+  df.log('bh', bh)
+
   let rectWidth = 8
   let rectNum = Math.floor(chartW / (2 + rectWidth))
   let rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
@@ -153,7 +183,7 @@ export default function (param, cb) {
     'y': 0,
     'width': svgArgs.width,
     'height': svgArgs.height,
-    'fill': colors[svgArgs.theme].bgColor
+    'fill': colors[conf.theme].bgColor
   })
 
   // => 添加绘图容器
@@ -183,7 +213,7 @@ export default function (param, cb) {
 
   arrowMarker.append('path')
     .attr('d', arrowPath)
-    .attr('fill', colors[svgArgs.theme].arrowColor)
+    .attr('fill', colors[conf.theme].arrowColor)
 
   // K线图中箭头指向最大最小值
   let maxPriceG = arrowG.append('g')
@@ -194,7 +224,7 @@ export default function (param, cb) {
     .attr('y1', 0)
     .attr('x2', 13)
     .attr('y2', 4)
-    .attr('stroke', colors[svgArgs.theme].arrowColor)
+    .attr('stroke', colors[conf.theme].arrowColor)
     .attr('stroke-width', 1)
     .attr('marker-end', 'url(#arrow)')
 
@@ -203,7 +233,7 @@ export default function (param, cb) {
     .attr('font-size', 12)
     .attr('stroke-width', 0)
     .attr('stroke', 'none')
-    .attr('fill', colors[svgArgs.theme].arrowColor)
+    .attr('fill', colors[conf.theme].arrowColor)
     .attr('dx', 0)
     .attr('dy', 5)
 
@@ -212,7 +242,7 @@ export default function (param, cb) {
     .attr('y1', 0)
     .attr('x2', 13)
     .attr('y2', -2)
-    .attr('stroke', colors[svgArgs.theme].arrowColor)
+    .attr('stroke', colors[conf.theme].arrowColor)
     .attr('stroke-width', 1)
     .attr('marker-end', 'url(#arrow)')
 
@@ -221,7 +251,7 @@ export default function (param, cb) {
     .attr('font-size', 12)
     .attr('stroke-width', 0)
     .attr('stroke', 'none')
-    .attr('fill', colors[svgArgs.theme].arrowColor)
+    .attr('fill', colors[conf.theme].arrowColor)
     .attr('dx', 0)
     .attr('dy', 5)
 
@@ -234,7 +264,7 @@ export default function (param, cb) {
     class: 'cursorLineX',
     x1: 0,
     x2: chartW,
-    stroke: colors[param.theme].cursorBlue,
+    stroke: colors[conf.theme].cursorBlue,
     'stroke-width': 1,
     'stroke-dasharray': '3, 3'
   })
@@ -242,7 +272,7 @@ export default function (param, cb) {
     class: 'cursorLineY',
     y1: th + headH,
     y2: th + chartH,
-    stroke: colors[param.theme].cursorBlue,
+    stroke: colors[conf.theme].cursorBlue,
     'stroke-width': 1,
     'stroke-dasharray': '3, 3'
   })
@@ -258,9 +288,9 @@ export default function (param, cb) {
     y: 0,
     width: 70,
     height: 18,
-    stroke: colors[param.theme].tipBorderBlue,
+    stroke: colors[conf.theme].tipBorderBlue,
     'stroke-width': 1,
-    fill: colors[param.theme].tipBlue
+    fill: colors[conf.theme].tipBlue
   })
   let timeTipText = df.drawText(timeTipG, {
     'font-family': 'PingFangSC-Regular',
@@ -268,7 +298,7 @@ export default function (param, cb) {
     dx: 38,
     dy: 14,
     stroke: 'none',
-    fill: colors[param.theme].tipTextBlue,
+    fill: colors[conf.theme].tipTextBlue,
     'text-anchor': 'middle'
   })
   // => 光标指示纵坐标
@@ -282,9 +312,9 @@ export default function (param, cb) {
     y: 0,
     width: lw,
     height: 18,
-    stroke: colors[param.theme].tipBorderBlue,
+    stroke: colors[conf.theme].tipBorderBlue,
     'stroke-width': 1,
-    fill: colors[param.theme].tipBlue
+    fill: colors[conf.theme].tipBlue
   })
   let priceTipText = df.drawText(priceTipG, {
     'font-family': 'PingFangSC-Regular',
@@ -292,7 +322,7 @@ export default function (param, cb) {
     dx: lw,
     dy: 14,
     stroke: 'none',
-    fill: colors[param.theme].tipTextBlue,
+    fill: colors[conf.theme].tipTextBlue,
     'text-anchor': 'end'
   })
 
@@ -308,8 +338,8 @@ export default function (param, cb) {
     y: 0,
     width: 140,
     height: 264,
-    stroke: colors[param.theme].floatGray,
-    fill: colors[param.theme].floatBg,
+    stroke: colors[conf.theme].floatGray,
+    fill: colors[conf.theme].floatBg,
     opacity: 0.8
   })
   let floatConf = ['时间:', '开盘:', '最高:', '最低:', '收盘:',
@@ -322,7 +352,7 @@ export default function (param, cb) {
       dx: 8,
       dy: 17 + 23 * i,
       stroke: 'none',
-      fill: colors[param.theme].floatTextGray,
+      fill: colors[conf.theme].floatTextGray,
       'pointer-events': 'none',
       'text-anchor': 'start'
     }).text(d)
@@ -332,7 +362,7 @@ export default function (param, cb) {
       dx: 140 - 8,
       dy: 17 + 23 * i,
       stroke: 'none',
-      fill: colors[param.theme].floatTextGray,
+      fill: colors[conf.theme].floatTextGray,
       'pointer-events': 'none',
       'text-anchor': 'end'
     })
@@ -378,7 +408,7 @@ export default function (param, cb) {
     kChartH = store.lists.length !== 0
       ? store.lists.length > 1
         ? chartH * 2 / (store.lists.length + 2)
-        : chartH * 3 / 4
+        : chartH * 3 / 5
       : chartH
     unitH = store.lists.length !== 0 ? (chartH - kChartH) / store.lists.length : 0
 
@@ -418,8 +448,8 @@ export default function (param, cb) {
         x: 0,
         y: 0,
         width: chartW,
-        height: 46,
-        fill: colors[svgArgs.theme].bgColor
+        height: th,
+        fill: colors[conf.theme].bgColor
       })
 
       // => 网格容器
@@ -441,7 +471,7 @@ export default function (param, cb) {
         ry: 5,
         width: chartW,
         height: 12,
-        stroke: colors[svgArgs.theme].slideBgRStroke,
+        stroke: colors[conf.theme].slideBgRStroke,
         'stroke-width': 1,
         fill: 'none',
         transform: `translate(${0},${0})`
@@ -454,7 +484,7 @@ export default function (param, cb) {
         width: 100,
         height: 12,
         stroke: 'none',
-        fill: colors[svgArgs.theme].slideFill,
+        fill: colors[conf.theme].slideFill,
         transform: `translate(${0},${0})`,
         cursor: 'move'
       })
@@ -499,7 +529,7 @@ export default function (param, cb) {
             sAngle: 180,
             eAngle: 360
           }),
-          fill: colors[svgArgs.theme].slideHalfCircle
+          fill: colors[conf.theme].slideHalfCircle
         })
       slideG.append('path')
         .attr({
@@ -510,7 +540,7 @@ export default function (param, cb) {
             sAngle: 0,
             eAngle: 180
           }),
-          fill: colors[svgArgs.theme].slideHalfCircle
+          fill: colors[conf.theme].slideHalfCircle
         })
       // => 左右半圆事件接收区
       let slideRArgs = {}
@@ -639,7 +669,7 @@ export default function (param, cb) {
         gClassName: 'KHeadG',
         w: chartW,
         h: headH,
-        color: colors[svgArgs.theme].headColor
+        color: colors[conf.theme].headColor
       })
       // => 添加股票名称
       df.drawText(KHeadG, {
@@ -649,21 +679,24 @@ export default function (param, cb) {
         dx: -lw + 8,
         dy: 18.5,
         stroke: 'none',
-        fill: colors[param.theme].titleColor,
-        'text-anchor': 'start'
+        fill: colors[conf.theme].titleColor,
+        'text-anchor': 'start',
+        opacity: conf.title === true ? 1 : 0
       })
       .text(store.title)
       // => 添加设置按钮
-      df.drawBtn({
-        G: KHeadG,
-        className: 'kSettingG',
-        offsetW: chartW - 25,
-        offsetH: 5,
-        d: icons.settings,
-        color: colors[svgArgs.theme].settingBtnColor,
-        scaleX: 0.15,
-        scaleY: 0.15
-      })
+      if (conf.settingBtn) {
+        df.drawBtn({
+          G: KHeadG,
+          className: 'kSettingG',
+          offsetW: chartW - 25,
+          offsetH: 5,
+          d: icons.settings,
+          color: colors[conf.theme].settingBtnColor,
+          scaleX: 0.15,
+          scaleY: 0.15
+        })
+      }
       // => k线区 事件交互容器
       df.drawRect(EventG, {
         class: 'kEventR',
@@ -785,7 +818,7 @@ export default function (param, cb) {
         })
         .select('path')
         .attr({
-          fill: colors[svgArgs.theme].btnHighlight,
+          fill: colors[conf.theme].btnHighlight,
           transform: `scale(${0.18}, ${0.18})`
         })
     })
@@ -801,7 +834,7 @@ export default function (param, cb) {
         })
         .select('path')
         .attr({
-          fill: colors[svgArgs.theme].settingBtnColor,
+          fill: colors[conf.theme].settingBtnColor,
           transform: `scale(${0.15}, ${0.15})`
         })
     })
@@ -830,7 +863,7 @@ export default function (param, cb) {
           y: headH,
           width: chartW,
           height: unitH - headH,
-          fill: colors[svgArgs.theme].bgColor
+          fill: colors[conf.theme].bgColor
         })
 
         // => 指标区 纵坐标容器
@@ -864,136 +897,140 @@ export default function (param, cb) {
           gClassName: `${d}HeadG`,
           w: chartW,
           h: headH,
-          color: colors[svgArgs.theme].headColor
+          color: colors[conf.theme].headColor
         })
         // => 添加指标区标题
         df.drawText(hg, {
           'font-family': 'PingFangSC-Medium',
           'font-size': 12,
           stroke: 'none',
-          fill: colors[svgArgs.theme].indexTextColor,
+          fill: colors[conf.theme].indexTextColor,
           x: 4,
-          y: 16.5
+          y: 16.5,
+          opacity: conf.title === true ? 1 : 0
         })
         .text(() => {
           return d !== 'VOL'
             ? `${d}(${store[`${d}Param`]})`
             : indicators1ToggleArr[toggleArr1index]
         })
-        // => 添加设置按钮
-        df.drawBtn({
-          G: hg,
-          className: `${d}SettingG`,
-          offsetW: chartW - 50,
-          offsetH: 5,
-          d: icons.settings,
-          color: colors[svgArgs.theme].settingBtnColor,
-          scaleX: 0.15,
-          scaleY: 0.15
-        })
-        // => 添加关闭按钮
-        df.drawBtn({
-          G: hg,
-          className: `${d}CloseG`,
-          offsetW: chartW - 25,
-          offsetH: 5,
-          d: icons.close,
-          color: colors[svgArgs.theme].settingBtnColor,
-          scaleX: 0.1667,
-          scaleY: 0.1667
-        })
-        // => 添加按钮事件接收器 设置按钮与关闭按钮
-        df.drawRect(hg, {
-          class: 'btnEventRSetting',
-          x: chartW - 50,
-          y: 5,
-          width: 15,
-          height: 15,
-          fill: '#fff',
-          opacity: 0
-        })
-        .attr('cursor', 'pointer')
-        .on('mouseover', () => {
-          // => 鼠标放在设置按钮上时 放大按钮
-          d3.select(`.${d}SettingG`)
-            .attr({
-              opacity: 0.5,
-              transform: `translate(${chartW - 50}, ${3.5})`
-            })
-            .select('path')
-            .attr({
-              fill: colors[svgArgs.theme].btnHighlight,
-              transform: `scale(${0.18}, ${0.18})`
-            })
-        })
-        .on('mouseout', () => {
-          // => 鼠标离开设置按钮上时 恢复按钮
-          d3.select(`.${d}SettingG`)
-            .attr({
-              opacity: 1,
-              transform: `translate(${chartW - 50}, ${5})`
-            })
-            .select('path')
-            .attr({
-              fill: colors[svgArgs.theme].settingBtnColor,
-              transform: `scale(${0.15}, ${0.15})`
-            })
-        })
-        .on('click', () => {
-          // => 回调函数 通知弹出设置模态框
-          cb({
-            type: 'setting',
-            data: d
+        // => 判断是否显示设置按钮与关闭按钮
+        if (conf.settingBtn) {
+          // => 添加设置按钮
+          df.drawBtn({
+            G: hg,
+            className: `${d}SettingG`,
+            offsetW: chartW - 50,
+            offsetH: 5,
+            d: icons.settings,
+            color: colors[conf.theme].settingBtnColor,
+            scaleX: 0.15,
+            scaleY: 0.15
           })
-        })
-        // => 关闭指示框按钮
-        df.drawRect(hg, {
-          class: 'btnEventRClose',
-          x: chartW - 25,
-          y: 5,
-          width: 15,
-          height: 15,
-          fill: 'fff',
-          opacity: 0
-        })
-        .attr('cursor', 'pointer')
-        .on('mouseover', () => {
-          // => 鼠标放在关闭按钮上时 放大按钮
-          d3.select(`.${d}CloseG`)
-            .attr({
-              opacity: 0.5,
-              transform: `translate(${chartW - 25}, ${3.5})`
-            })
-            .select('path')
-            .attr({
-              fill: colors[svgArgs.theme].btnHighlight,
-              transform: `scale(${0.2}, ${0.2})`
-            })
-        })
-        .on('mouseout', () => {
-          // => 鼠标离开关闭按钮上时 恢复按钮
-          d3.select(`.${d}CloseG`)
-            .attr({
-              opacity: 1,
-              transform: `translate(${chartW - 25}, ${5})`
-            })
-            .select('path')
-            .attr({
-              fill: colors[svgArgs.theme].settingBtnColor,
-              transform: `scale(${0.1667}, ${0.1667})`
-            })
-        })
-        .on('click', () => {
-          // => 回调函数 通知删除指标框
-          cb({
-            type: 'close',
-            data: d
+          // => 添加关闭按钮
+          df.drawBtn({
+            G: hg,
+            className: `${d}CloseG`,
+            offsetW: chartW - 25,
+            offsetH: 5,
+            d: icons.close,
+            color: colors[conf.theme].settingBtnColor,
+            scaleX: 0.1667,
+            scaleY: 0.1667
           })
-          // => 关闭指标框
-          let index = store.sourceLists.indexOf(d)
-          store.sourceLists.splice(index, 1)
-          this.updateIndicators(store.sourceLists)
-        })
+          // => 添加按钮事件接收器 设置按钮与关闭按钮
+          df.drawRect(hg, {
+            class: 'btnEventRSetting',
+            x: chartW - 50,
+            y: 5,
+            width: 15,
+            height: 15,
+            fill: '#fff',
+            opacity: 0
+          })
+          .attr('cursor', 'pointer')
+          .on('mouseover', () => {
+            // => 鼠标放在设置按钮上时 放大按钮
+            d3.select(`.${d}SettingG`)
+              .attr({
+                opacity: 0.5,
+                transform: `translate(${chartW - 50}, ${3.5})`
+              })
+              .select('path')
+              .attr({
+                fill: colors[conf.theme].btnHighlight,
+                transform: `scale(${0.18}, ${0.18})`
+              })
+          })
+          .on('mouseout', () => {
+            // => 鼠标离开设置按钮上时 恢复按钮
+            d3.select(`.${d}SettingG`)
+              .attr({
+                opacity: 1,
+                transform: `translate(${chartW - 50}, ${5})`
+              })
+              .select('path')
+              .attr({
+                fill: colors[conf.theme].settingBtnColor,
+                transform: `scale(${0.15}, ${0.15})`
+              })
+          })
+          .on('click', () => {
+            // => 回调函数 通知弹出设置模态框
+            cb({
+              type: 'setting',
+              data: d
+            })
+          })
+          // => 关闭指示框按钮
+          df.drawRect(hg, {
+            class: 'btnEventRClose',
+            x: chartW - 25,
+            y: 5,
+            width: 15,
+            height: 15,
+            fill: 'fff',
+            opacity: 0
+          })
+          .attr('cursor', 'pointer')
+          .on('mouseover', () => {
+            // => 鼠标放在关闭按钮上时 放大按钮
+            d3.select(`.${d}CloseG`)
+              .attr({
+                opacity: 0.5,
+                transform: `translate(${chartW - 25}, ${3.5})`
+              })
+              .select('path')
+              .attr({
+                fill: colors[conf.theme].btnHighlight,
+                transform: `scale(${0.2}, ${0.2})`
+              })
+          })
+          .on('mouseout', () => {
+            // => 鼠标离开关闭按钮上时 恢复按钮
+            d3.select(`.${d}CloseG`)
+              .attr({
+                opacity: 1,
+                transform: `translate(${chartW - 25}, ${5})`
+              })
+              .select('path')
+              .attr({
+                fill: colors[conf.theme].settingBtnColor,
+                transform: `scale(${0.1667}, ${0.1667})`
+              })
+          })
+          .on('click', () => {
+            // => 回调函数 通知删除指标框
+            cb({
+              type: 'close',
+              data: d
+            })
+            // => 关闭指标框
+            let index = store.sourceLists.indexOf(d)
+            store.sourceLists.splice(index, 1)
+            this.updateIndicators(store.sourceLists)
+          })
+        }
 
         // => 指标区 事件交互容器
         df.drawRect(EventG, {
@@ -1070,7 +1107,7 @@ export default function (param, cb) {
             y: headH,
             width: chartW,
             height: unitH - headH,
-            fill: colors[svgArgs.theme].bgColor
+            fill: colors[conf.theme].bgColor
           })
         // 更新头部宽度
         d3.select(`.${d}HeadG`)
@@ -1131,6 +1168,9 @@ export default function (param, cb) {
    * 缩放事件处理函数
    */
   function zoom () {
+    if (!conf.dragZoom) {
+      return null
+    }
     // => 更新当前缩放值
     currentScale = d3.event.scale
     rectWidth = d3.event.scale * 8
@@ -1168,7 +1208,7 @@ export default function (param, cb) {
    */
   function drag () {
     // => 判断是否处于画笔状态
-    if (!brush.status) {
+    if (!brush.status && conf.dragZoom) {
       // => 拖动状态下关闭十字光标
       cursorFlag = false
       hideCursor()
@@ -1415,7 +1455,7 @@ export default function (param, cb) {
       bottom: 0,
       left: 0,
       right: 0,
-      stroke: colors[svgArgs.theme].gridGray
+      stroke: colors[conf.theme].gridGray
     })
     let slideUnitW = chartW / store.data.length
     slideMove({
@@ -1432,7 +1472,7 @@ export default function (param, cb) {
       'font-family': 'PingFangSC-Regular',
       'font-size': 12,
       stroke: 'none',
-      fill: colors[svgArgs.theme].indexTextColor,
+      fill: colors[conf.theme].indexTextColor,
       'text-anchor': (d, i) => {
         if (i === 0) {
           return 'start'
@@ -1453,21 +1493,21 @@ export default function (param, cb) {
     // => 更新网格位置
     df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, 1, {
       width: chartW,
-      height: kChartH - 25,
+      height: kChartH - headH,
       top: 0,
       bottom: 0,
       left: 0,
       right: 0,
-      stroke: colors[svgArgs.theme].gridGray
+      stroke: colors[conf.theme].gridGray
     })
     df.drawkGrid(d3.select('.KgridG'), vGridNums, rectWidth, rectSpace, {
       width: chartW,
-      height: kChartH - 25,
+      height: kChartH - headH,
       top: 0,
       bottom: 0,
       left: 0,
       right: 0,
-      stroke: colors[svgArgs.theme].gridGray
+      stroke: colors[conf.theme].gridGray
     })
 
     /**
@@ -1564,8 +1604,8 @@ export default function (param, cb) {
       rectWidth: rectWidth,
       rectSpace: rectSpace,
       scaleY: scale.pricescale,
-      red: colors[svgArgs.theme].kRed,
-      green: colors[svgArgs.theme].kGreen
+      red: colors[conf.theme].kRed,
+      green: colors[conf.theme].kGreen
     })
     // => 绘制k线上引线
     df.drawkLeads({
@@ -1576,8 +1616,8 @@ export default function (param, cb) {
       rectWidth: rectWidth,
       rectSpace: rectSpace,
       scaleY: scale.pricescale,
-      red: colors[svgArgs.theme].kRed,
-      green: colors[svgArgs.theme].kGreen
+      red: colors[conf.theme].kRed,
+      green: colors[conf.theme].kGreen
     })
     // => 绘制k线实体
     df.drawkRect({
@@ -1587,8 +1627,8 @@ export default function (param, cb) {
       rectWidth: rectWidth,
       rectSpace: rectSpace,
       scaleY: scale.pricescale,
-      red: colors[svgArgs.theme].kRed,
-      green: colors[svgArgs.theme].kGreen
+      red: colors[conf.theme].kRed,
+      green: colors[conf.theme].kGreen
     })
     // => 绘制ma移动均线
     df.drawPolyline(
@@ -1598,7 +1638,7 @@ export default function (param, cb) {
         fill: 'none',
         'stroke-width': 1,
         'stroke': (d, i) => {
-          return colors[svgArgs.theme].curveColor[i]
+          return colors[conf.theme].curveColor[i]
         }
       },
       store.MAdata,
@@ -1623,7 +1663,7 @@ export default function (param, cb) {
       'font-family': 'PingFangSC-Regular',
       'font-size': 12,
       stroke: 'none',
-      fill: colors[svgArgs.theme].indexTextColor,
+      fill: colors[conf.theme].indexTextColor,
       opacity: (d, i) => {
         return i === timeArr.length - 1
           ? Math.round(store.Kdata.length * (rectWidth + rectSpace)) < chartW
@@ -1675,7 +1715,7 @@ export default function (param, cb) {
         'font-size': 12,
         'text-anchor': 'end',
         stroke: 'none',
-        fill: colors[svgArgs.theme].indexTextColor,
+        fill: colors[conf.theme].indexTextColor,
         y: (d, i) => {
           return i !== 0
             ? i !== khGridNums
@@ -1694,21 +1734,21 @@ export default function (param, cb) {
       // => 更新网格位置
       df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, 1, {
         width: chartW,
-        height: unitH - 25 > 1 ? unitH - 25 : 1,
+        height: unitH - headH > 1 ? unitH - headH : 1,
         top: 0,
         bottom: 0,
         left: 0,
         right: 0,
-        stroke: colors[svgArgs.theme].gridGray
+        stroke: colors[conf.theme].gridGray
       })
       df.drawkGrid(d3.select(`.${d}gridG`), vGridNums, rectWidth, rectSpace, {
         width: chartW,
-        height: unitH - 25 > 1 ? unitH - 25 : 1,
+        height: unitH - headH > 1 ? unitH - headH : 1,
         top: 0,
         bottom: 0,
         left: 0,
         right: 0,
-        stroke: colors[svgArgs.theme].gridGray
+        stroke: colors[conf.theme].gridGray
       })
       // => 渲染／更新图形
       switch (d) {
@@ -1724,7 +1764,7 @@ export default function (param, cb) {
     function renderVol (G, d) {
       let max = d3.max(store.Kdata, (d) => { return d[indicators1ToggleArrType[toggleArr1index]] })
 
-      let maxH = unitH - 25
+      let maxH = unitH - headH
       scale.VOLscale = df.linear([0, max], [0, maxH - 5])
       scale.VOLPathscale = df.linear([0, max], [maxH - 5, 0])
       // => 绘制成交量成交额柱状图
@@ -1744,18 +1784,18 @@ export default function (param, cb) {
         },
         fill: (d, i) => {
           if (d.close > d.open) {
-            return colors[svgArgs.theme].kRed
+            return colors[conf.theme].kRed
           } else if (d.close < d.open) {
-            return colors[svgArgs.theme].kGreen
+            return colors[conf.theme].kGreen
           } else {
             if (i !== 0) {
               if (store.Kdata[i - 1].close <= d.close) {
-                return colors[svgArgs.theme].kRed
+                return colors[conf.theme].kRed
               } else {
-                return colors[svgArgs.theme].kGreen
+                return colors[conf.theme].kGreen
               }
             } else {
-              return colors[svgArgs.theme].kRed
+              return colors[conf.theme].kRed
             }
           }
         }
@@ -1774,7 +1814,7 @@ export default function (param, cb) {
           fill: 'none',
           'stroke-width': 1,
           'stroke': (d, i) => {
-            return colors[svgArgs.theme].curveColor[i]
+            return colors[conf.theme].curveColor[i]
           }
         },
         store.MAVolumedata,
@@ -1806,7 +1846,7 @@ export default function (param, cb) {
           'font-size': 12,
           'text-anchor': 'end',
           stroke: 'none',
-          fill: colors[svgArgs.theme].indexTextColor,
+          fill: colors[conf.theme].indexTextColor,
           y: (d, i) => {
             return i !== 0
               ? i !== ihGridNums
@@ -1874,9 +1914,9 @@ export default function (param, cb) {
         },
         fill: (d, i) => {
           if (d.value >= 0) {
-            return colors[svgArgs.theme].kRed
+            return colors[conf.theme].kRed
           } else {
-            return colors[svgArgs.theme].kGreen
+            return colors[conf.theme].kGreen
           }
         }
       })
@@ -1888,7 +1928,7 @@ export default function (param, cb) {
           fill: 'none',
           'stroke-width': 1,
           'stroke': (d, i) => {
-            return colors[svgArgs.theme].curveColor[i]
+            return colors[conf.theme].curveColor[i]
           }
         },
         data.slice(1),
@@ -1918,7 +1958,7 @@ export default function (param, cb) {
           'font-size': 12,
           'text-anchor': 'end',
           stroke: 'none',
-          fill: colors[svgArgs.theme].indexTextColor,
+          fill: colors[conf.theme].indexTextColor,
           y: (d, i) => {
             return i !== 0
               ? i !== ihGridNums
@@ -1984,7 +2024,7 @@ export default function (param, cb) {
             'font-size': 12,
             'text-anchor': 'end',
             stroke: 'none',
-            fill: colors[svgArgs.theme].indexTextColor,
+            fill: colors[conf.theme].indexTextColor,
             y: (d, i) => {
               return i !== 0
                 ? i !== ihGridNums
@@ -2008,7 +2048,7 @@ export default function (param, cb) {
           fill: 'none',
           'stroke-width': 1,
           'stroke': (d, i) => {
-            return colors[svgArgs.theme].curveColor[i]
+            return colors[conf.theme].curveColor[i]
           }
         },
         data,
@@ -2018,9 +2058,11 @@ export default function (param, cb) {
   }
   // => 显示光标
   function showCursor () {
-    cursorG.attr('opacity', 1)
-    floatBox.attr('opacity', 1)
-    d3.selectAll('.tipTexts').attr('opacity', 1)
+    if (conf.cursorInteract) {
+      cursorG.attr('opacity', 1)
+      floatBox.attr('opacity', 1)
+      d3.selectAll('.tipTexts').attr('opacity', 1)
+    }
   }
   // => 隐藏光标
   function hideCursor () {
@@ -2144,9 +2186,9 @@ export default function (param, cb) {
     function textColor (val) {
       return val !== undefined
         ? val >= 0
-          ? colors[param.theme].floatTextRed
-          : colors[param.theme].floatTextGreen
-        : colors[param.theme].floatTextGray
+          ? colors[conf.theme].floatTextRed
+          : colors[conf.theme].floatTextGreen
+        : colors[conf.theme].floatTextGray
     }
     // => 更新头部指标值
     let tipData = {
@@ -2240,9 +2282,9 @@ export default function (param, cb) {
           if (firstColor !== undefined) {
             return i === 0
             ? firstColor
-            : colors[svgArgs.theme].curveColor[i - 1]
+            : colors[conf.theme].curveColor[i - 1]
           } else {
-            return colors[svgArgs.theme].curveColor[i]
+            return colors[conf.theme].curveColor[i]
           }
         },
         x: (d, i) => {

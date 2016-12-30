@@ -4,6 +4,7 @@
     <!--<Kchart></Kchart>-->
     <router-link to='/'>tsChart</router-link>
     <router-link to='/k'>kChart</router-link>
+    <router-link to='/9k'>9Chart</router-link>
     <router-view></router-view>
   </div>
 </template>

@@ -15,6 +15,11 @@ const router = new VueRouter({
       path: '/k',
       name: 'k',
       component: require('components/Kchart')
+    },
+    {
+      path: '/9k',
+      name: '9k',
+      component: require('components/Kchart9')
     }
   ]
 })

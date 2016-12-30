@@ -26,7 +26,7 @@ export default {
   data () {
     return {
       msg: 'Welcome to Your Vue.js App',
-      lists: ['MA', 'VOL', 'MACD', 'RSI'],
+      lists: ['MA', 'VOL', 'VOL(MA)'],
       kChart: null
     }
   },
@@ -34,20 +34,31 @@ export default {
     // 000001.SS 000001.SZ 000625.SZ 002312.SZ {symbol, period, startTime, lastNPoints = 0}
     getKchartService({
       symbol: '002312.SZ',
-      period: 'Min1'
+      period: 'Day1'
     }, data => {
       filterData = data.slice(0, 200)
       newData = data.slice(200)
       let param = {
         id: 'kChartContainer', // 画布容器
-        theme: 0, // 颜色主题
         title: '上证指数', // 股票名称
-        period: 'Min1', // 周期
+        period: 'Day1', // 周期
         lists: this.lists, // 指标列表
         totalShares: 1378091733, // 总股本
         data: filterData // k线数据
       }
-      this.tsChart = new RenderKChart(param, this.cb)
+      let config = {
+        // mode: 0, // 默认模式0 九宫格模式1
+        // theme: 0, // 默认白色颜色主题0
+        // scrollBar: false, // 是否显示底部滑动条
+        // cursorInteract: false, // 是否允许光标交互
+        // dragZoom: false, // 是否允许拖拽与缩放
+        // settingBtn: false, // 是否显示设置按钮
+        // title: false // 是否显示股票名称
+      }
+      this.tsChart = new RenderKChart({
+        param: param,
+        config: config,
+        cb: this.cb})
     })
   },
   methods: {

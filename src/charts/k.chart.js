@@ -13,12 +13,20 @@
  * @data 新的绘图数据
  * @data return []
  * kChart.refreshChart(data)
+ * @config mode 模式选择 默认模式0 九宫格模式1 简版模式2
+ * @config theme 预留颜色主题 默认为白色主题0
+ * @config cursorInteract 是否允许光标交互 默认允许
+ * @config dragZoom 是否允许拖拽与缩放 默认允许
+ * @config settingBtn 是否显示设置按钮 默认显示
+ * @config title 是否显示股票名称 默认显示
+ * @config return {}
  */
 import DrawKChart from './kchart/render.k.chart'
 
 export default class RenderKChart {
-  constructor (param, cb) {
+  constructor ({param, config, cb}) {
     this.param = param
+    this.config = config
     this.cb = cb
     this.renderChart()
   }
@@ -26,7 +34,10 @@ export default class RenderKChart {
    * 渲染视图
    */
   renderChart () {
-    this.kChart = new DrawKChart(this.param, this.cb)
+    this.kChart = new DrawKChart({
+      param: this.param,
+      config: this.config,
+      cb: this.cb})
   }
   /**
    * 数据更新视图
