@@ -1163,7 +1163,7 @@ export default function ({param, config, cb}) {
 
   // => 更新指标参数
   this.updateArgs = function (data) {
-    store[`${data.args}Param`]
+    store[`${data.data}Param`] = Object.assign([], data.args)
     dataFilter()
   }
 
