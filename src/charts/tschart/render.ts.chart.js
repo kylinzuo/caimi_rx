@@ -490,7 +490,7 @@ export default function (param, svgArgs, toggleChart) {
       class: 'tsArea',
       fill: 'url(#' + tsLinearGradient.attr('id')
     }
-    df.drawAreaPolyline(tsChartG, areaArgs, [store.data], tsArea)
+    df.drawAreaPolyline(tsChartG, areaArgs, [store.data], tsArea, svgArgs)
     // => 价格曲线
     let tsLine = df.line(scaleX, scaleY1, 'time', 'close')
     let polylineArgs = {
@@ -499,7 +499,7 @@ export default function (param, svgArgs, toggleChart) {
       stroke: colors[param.theme].blue,
       'stroke-width': 1
     }
-    df.drawPolyline(tsChartG, polylineArgs, [store.data], tsLine)
+    df.drawPolyline(tsChartG, polylineArgs, [store.data], tsLine, svgArgs)
 
     // 计算平均线数据并绘制曲线
     store.maData = average(store.data)
@@ -510,7 +510,7 @@ export default function (param, svgArgs, toggleChart) {
       stroke: colors[param.theme].orange,
       'stroke-width': 1
     }
-    df.drawPolyline(tsChartG, maPolylineArgs, [store.maData], tsMaLine)
+    df.drawPolyline(tsChartG, maPolylineArgs, [store.maData], tsMaLine, svgArgs)
     // 获取均价字典
     store.maDataDict = {}
     store.maData.forEach((d, i) => {
@@ -546,7 +546,7 @@ export default function (param, svgArgs, toggleChart) {
       }
       let rectType = indicators1[indicators1Index] === '成交量' ? 'volume' : 'balance'
 
-      df.drawHistogram(tsChartVolumeG, rectArgs, store.data, rectType, scaleX, scaleY2, chartH2, colors[param.theme].fillRed, colors[param.theme].fillGreen)
+      df.drawHistogram(tsChartVolumeG, rectArgs, store.data, rectType, scaleX, scaleY2, chartH2, colors[param.theme].fillRed, colors[param.theme].fillGreen, svgArgs)
     }
     updateIndicators2()
 

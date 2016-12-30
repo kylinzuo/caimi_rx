@@ -55,7 +55,7 @@ export default {
         // settingBtn: false, // 是否显示设置按钮
         // title: false // 是否显示股票名称
       }
-      this.tsChart = new RenderKChart({
+      this.kChart = new RenderKChart({
         param: param,
         config: config,
         cb: this.cb})
@@ -67,7 +67,7 @@ export default {
       if (newData.length > 0) {
         filterData.push(newData.shift())
       }
-      this.tsChart.refreshChart(filterData)
+      this.kChart.refreshChart(filterData)
     },
     checkLists (val) {
       let index = this.lists.indexOf(val)
@@ -86,7 +86,7 @@ export default {
           }
         }
       }
-      this.tsChart.updateIndicators(Object.assign([], this.lists))
+      this.kChart.updateIndicators(Object.assign([], this.lists))
     },
     cb (data) {
       console.log(data)

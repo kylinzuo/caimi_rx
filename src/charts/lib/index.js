@@ -279,7 +279,7 @@ export function drawGrid (gridG, svgArgs, hNums, vNums, gridGargs) {
   let w = gridGargs.width
   let h = gridGargs.height
 
-  let update1 = gridG.selectAll('.horizontalLines')
+  let update1 = gridG.selectAll(`#${svgArgs.id} .horizontalLines`)
     .data(hArr)
   let enter1 = update1.enter()
   let exit1 = update1.exit()
@@ -299,7 +299,7 @@ export function drawGrid (gridG, svgArgs, hNums, vNums, gridGargs) {
     })
   exit1.remove()
   // 网格垂直分隔线
-  let update2 = gridG.selectAll('.verticalLines')
+  let update2 = gridG.selectAll(`#${svgArgs.id} .verticalLines`)
     .data(vArr)
   let enter2 = update2.enter()
   let exit2 = update2.exit()
@@ -345,8 +345,8 @@ export function drawText (G, textArgs) {
  * data => 绘图数据
  * area => 面积生成器
 */
-export function drawAreaPolyline (G, areaArgs, data, area) {
-  let update = G.selectAll(`.${areaArgs.class}`)
+export function drawAreaPolyline (G, areaArgs, data, area, svgArgs) {
+  let update = G.selectAll(`#${svgArgs.id} .${areaArgs.class}`)
     .data(data)
   let enter = update.enter()
   let exit = update.exit()
@@ -366,8 +366,8 @@ export function drawAreaPolyline (G, areaArgs, data, area) {
  * data => 绘图数据
  * line => 线生成器
  */
-export function drawPolyline (G, polylineArgs, data, line) {
-  let update = G.selectAll(`.${polylineArgs.class}`)
+export function drawPolyline (G, polylineArgs, data, line, svgArgs) {
+  let update = G.selectAll(`#${svgArgs.id} .${polylineArgs.class}`)
     .data(data)
   let enter = update.enter()
   let exit = update.exit()
@@ -386,8 +386,8 @@ export function drawPolyline (G, polylineArgs, data, line) {
  * rectArgs => 参数
  * data => 绘图数据
  */
-export function drawHistogram (G, rectArgs, data, type, scaleX, scaleY, h, red, green) {
-  let update = G.selectAll(`.${rectArgs.class}`)
+export function drawHistogram (G, rectArgs, data, type, scaleX, scaleY, h, red, green, svgArgs) {
+  let update = G.selectAll(`#${svgArgs.id} .${rectArgs.class}`)
     .data(data)
   let enter = update.enter()
   let exit = update.exit()
@@ -496,14 +496,14 @@ export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scal
 /**
  * 绘制k线网格之中间的竖直线 => 需要每根竖直线正好位于相近k线中间
  */
-export function drawkGrid (G, vNums, rectW, rectS, gridGargs) {
+export function drawkGrid (G, vNums, rectW, rectS, gridGargs, svgArgs) {
   let vArr = getSerialArr(vNums)
   let w = gridGargs.width
   let h = gridGargs.height
   let unitW = w / vNums
   let x = Math.ceil(unitW / (rectW + rectS)) * (rectW + rectS)
   // 网格垂直分隔线
-  let update = G.selectAll('.kverticalLines')
+  let update = G.selectAll(`#${svgArgs.id} .kverticalLines`)
     .data(vArr)
   let enter = update.enter()
   let exit = update.exit()
@@ -539,9 +539,9 @@ export function drawkGrid (G, vNums, rectW, rectS, gridGargs) {
  * 绘制K线上下引线
  * G => 容器
  */
-export function drawkLeads ({G, data, className, direction, rectWidth, rectSpace, scaleY, red, green}) {
+export function drawkLeads ({G, data, className, direction, rectWidth, rectSpace, scaleY, red, green, svgArgs}) {
   // k线上下引线部分
-  let update = G.selectAll(`.${className}`)
+  let update = G.selectAll(`#${svgArgs.id} .${className}`)
     .data(data)
   let enter = update.enter()
   let exit = update.exit()
@@ -632,8 +632,8 @@ export function drawkLeads ({G, data, className, direction, rectWidth, rectSpace
  * 绘制K线实体
  * G => 容器
  */
-export function drawkRect ({G, data, className, rectWidth, rectSpace, scaleY, red, green}) {
-  let update = G.selectAll(`.${className}`)
+export function drawkRect ({G, data, className, rectWidth, rectSpace, scaleY, red, green, svgArgs}) {
+  let update = G.selectAll(`#${svgArgs.id} .${className}`)
     .data(data)
   let enter = update.enter()
   let exit = update.exit()
@@ -796,8 +796,8 @@ export function kLine ({rectWidth, rectSpace, scaleY}) {
  * 绘制通用柱状图
  * G => 容器
  */
-export function drawRectChart ({G, data, className, x, y, width, height, fill}) {
-  let update = G.selectAll(`.${className}`)
+export function drawRectChart ({G, data, className, x, y, width, height, fill, svgArgs}) {
+  let update = G.selectAll(`#${svgArgs.id} .${className}`)
     .data(data)
   let enter = update.enter()
   let exit = update.exit()
@@ -823,8 +823,8 @@ export function drawRectChart ({G, data, className, x, y, width, height, fill}) 
 /**
  * 绘制文本
  */
-export function drawTexts (G, className, texts, textArgs, fn) {
-  let update = G.selectAll(`.${className}`)
+export function drawTexts (G, className, texts, textArgs, fn, svgArgs) {
+  let update = G.selectAll(`#${svgArgs.id} .${className}`)
     .data(texts)
   let enter = update.enter()
   let exit = update.exit()
@@ -884,7 +884,7 @@ export function drawSlideGrid (gridG, svgArgs, vNums, gridGargs) {
   let h = gridGargs.height
 
   // 网格垂直分隔线
-  let update = gridG.selectAll('.verticalLines')
+  let update = gridG.selectAll(`#${svgArgs.id} .slideVerticalLines`)
     .data(vArr)
   let enter = update.enter()
   let exit = update.exit()
@@ -896,7 +896,7 @@ export function drawSlideGrid (gridG, svgArgs, vNums, gridGargs) {
       return `M${(i * (w / vNums))},0L${(i * (w / vNums))},${h}`
     })
   enter.append('path')
-    .attr('class', 'verticalLines')
+    .attr('class', 'slideVerticalLines')
     .attr('stroke', gridGargs.stroke)
     .attr('stroke-Width', 1)
     .attr('fill', 'none')

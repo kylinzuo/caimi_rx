@@ -48,11 +48,11 @@ export default {
           theme: 0, // 默认白色颜色主题0
           scrollBar: false, // 是否显示底部滑动条
           cursorInteract: false, // 是否允许光标交互
-          dragZoom: false, // 是否允许拖拽与缩放
+          dragZoom: true, // 是否允许拖拽与缩放
           settingBtn: false, // 是否显示设置按钮
           title: false // 是否显示股票名称
         }
-        this.tsChart[d] = new RenderKChart({
+        this.kChart[d] = new RenderKChart({
           param: param,
           config: config,
           cb: this.cb})
@@ -65,7 +65,7 @@ export default {
       if (newData.length > 0) {
         filterData.push(newData.shift())
       }
-      this.tsChart.refreshChart(filterData)
+      this.kChart.refreshChart(filterData)
     },
     checkLists (val) {
       let index = this.lists.indexOf(val)
@@ -84,7 +84,7 @@ export default {
           }
         }
       }
-      this.tsChart.updateIndicators(Object.assign([], this.lists))
+      this.kChart.updateIndicators(Object.assign([], this.lists))
     },
     cb (data) {
       console.log(data)

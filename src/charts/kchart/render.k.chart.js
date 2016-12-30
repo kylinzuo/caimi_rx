@@ -142,7 +142,6 @@ export default function ({param, config, cb}) {
   conf.dragZoom = config.dragZoom === false ? config.dragZoom : conf.dragZoom
   conf.settingBtn = config.settingBtn === false ? config.settingBtn : conf.settingBtn
   conf.title = config.title === false ? config.title : conf.title
-  df.log('conf', conf)
   /**
    * rectWidth => k线实体默认宽度
    * rectNum => 行情区显示K线的数量
@@ -151,7 +150,6 @@ export default function ({param, config, cb}) {
 
   // => 获取svg尺寸
   let svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
-
   // => 更新每一区域头部高度
   headH = conf.title === true ? 25 : 0
   // => 图形四周宽度
@@ -161,7 +159,6 @@ export default function ({param, config, cb}) {
   let bh = conf.scrollBar === true ? 46 : 18
   let chartW = svgArgs.width - lw - rw
   let chartH = svgArgs.height - th - bh
-  df.log('bh', bh)
 
   let rectWidth = 8
   let rectNum = Math.floor(chartW / (2 + rectWidth))
@@ -382,8 +379,8 @@ export default function ({param, config, cb}) {
     store.lists.forEach((d) => {
       if (!(new Set(store.sourceLists)).has(d)) {
         // => 删除已经不在切换列表被选中的指标容器
-        d3.select(`.${d}G`).remove()
-        d3.select(`.${d}EventR`).remove()
+        d3.select(`#${svgArgs.id} .${d}G`).remove()
+        d3.select(`#${svgArgs.id} .${d}EventR`).remove()
       }
     })
 
@@ -429,7 +426,7 @@ export default function ({param, config, cb}) {
       : Math.max(tempVGridNums, 1)
 
     // => 添加k线区容器
-    if (!document.querySelector('.KHeadG')) {
+    if (!document.querySelector(`#${svgArgs.id} .KHeadG`)) {
       let KG = svgG.append('g')
         .attr('class', 'KG')
         .attr('transform', `translate(0, 0)`)
@@ -558,8 +555,8 @@ export default function ({param, config, cb}) {
       .on('mousedown', function () {
         cacheCursor(this)
         slideRArgs = {
-          x: +d3.select('.slideR').attr('x'),
-          width: +d3.select('.slideR').attr('width')
+          x: +d3.select(`#${svgArgs.id} .slideR`).attr('x'),
+          width: +d3.select(`#${svgArgs.id} .slideR`).attr('width')
         }
       })
       .call(df.drag(function () {
@@ -603,8 +600,8 @@ export default function ({param, config, cb}) {
       .on('mousedown', function () {
         cacheCursor(this)
         slideRArgs = {
-          x: +d3.select('.slideR').attr('x'),
-          width: +d3.select('.slideR').attr('width')
+          x: +d3.select(`#${svgArgs.id} .slideR`).attr('x'),
+          width: +d3.select(`#${svgArgs.id} .slideR`).attr('width')
         }
       })
       .call(df.drag(function () {
@@ -759,31 +756,31 @@ export default function ({param, config, cb}) {
       })
     } else {
       // 更新数据
-      d3.select('.KHeadG')
+      d3.select(`#${svgArgs.id} .KHeadG`)
         .select('.head')
         .attr('width', chartW)
-      d3.select('.KHeadG')
+      d3.select(`#${svgArgs.id} .KHeadG`)
         .select('.kSettingG')
         .attr('transform', `translate(${chartW - 25}, ${5})`)
-      d3.select('svg')
+      d3.select(`#${svgArgs.id} svg`)
         .attr('width', svgArgs.width + svgArgs.margin.left + svgArgs.margin.right)
         .attr('height', svgArgs.height + svgArgs.margin.top + svgArgs.margin.bottom)
-      d3.select('.bgR')
+      d3.select(`#${svgArgs.id} .bgR`)
         .attr('width', svgArgs.width)
         .attr('height', svgArgs.height)
-      d3.select('.floorG')
+      d3.select(`#${svgArgs.id} .floorG`)
         .attr('transform', `translate(0, ${chartH})`)
 
-      d3.select(`.floorBgR`)
+      d3.select(`#${svgArgs.id} .floorBgR`)
         .attr({
           width: chartW
         })
-      d3.select(`.slideBgR`)
+      d3.select(`#${svgArgs.id} .slideBgR`)
         .attr({
           width: chartW
         })
 
-      d3.select('.kEventR')
+      d3.select(`#${svgArgs.id} .kEventR`)
         .attr({
           width: chartW,
           height: kChartH - headH,
@@ -791,12 +788,12 @@ export default function ({param, config, cb}) {
         })
     }
     // => 判断k线部分设置按钮是否需要显示
-    d3.select('.kSettingG')
+    d3.select(`#${svgArgs.id} .kSettingG`)
       .attr('opacity', () => {
         return store.MAflag || store.BOLLflag ? 1 : 0
       })
     // => 添加按钮事件接收器 设置按钮与关闭按钮
-    df.drawRect(d3.select('.kSettingG'), {
+    df.drawRect(d3.select(`#${svgArgs.id} .kSettingG`), {
       class: 'btnEventR',
       x: 0,
       y: 0,
@@ -811,7 +808,7 @@ export default function ({param, config, cb}) {
         return
       }
       // => 鼠标放在设置按钮上时 放大按钮
-      d3.select(`.kSettingG`)
+      d3.select(`#${svgArgs.id} .kSettingG`)
         .attr({
           opacity: 0.5,
           transform: `translate(${chartW - headH}, ${3.5})`
@@ -827,7 +824,7 @@ export default function ({param, config, cb}) {
         return
       }
       // => 鼠标离开设置按钮上时 恢复按钮
-      d3.select(`.kSettingG`)
+      d3.select(`#${svgArgs.id} .kSettingG`)
         .attr({
           opacity: 1,
           transform: `translate(${chartW - headH}, ${5})`
@@ -851,7 +848,7 @@ export default function ({param, config, cb}) {
 
     // => 添加指标区容器
     store.lists.forEach((d, i) => {
-      if (!document.querySelector(`.${d}HeadG`)) {
+      if (!document.querySelector(`#${svgArgs.id} .${d}HeadG`)) {
         let g = svgG.append('g')
           .attr('class', `${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)
@@ -951,7 +948,7 @@ export default function ({param, config, cb}) {
           .attr('cursor', 'pointer')
           .on('mouseover', () => {
             // => 鼠标放在设置按钮上时 放大按钮
-            d3.select(`.${d}SettingG`)
+            d3.select(`#${svgArgs.id} .${d}SettingG`)
               .attr({
                 opacity: 0.5,
                 transform: `translate(${chartW - 50}, ${3.5})`
@@ -964,7 +961,7 @@ export default function ({param, config, cb}) {
           })
           .on('mouseout', () => {
             // => 鼠标离开设置按钮上时 恢复按钮
-            d3.select(`.${d}SettingG`)
+            d3.select(`#${svgArgs.id} .${d}SettingG`)
               .attr({
                 opacity: 1,
                 transform: `translate(${chartW - 50}, ${5})`
@@ -995,7 +992,7 @@ export default function ({param, config, cb}) {
           .attr('cursor', 'pointer')
           .on('mouseover', () => {
             // => 鼠标放在关闭按钮上时 放大按钮
-            d3.select(`.${d}CloseG`)
+            d3.select(`#${svgArgs.id} .${d}CloseG`)
               .attr({
                 opacity: 0.5,
                 transform: `translate(${chartW - 25}, ${3.5})`
@@ -1008,7 +1005,7 @@ export default function ({param, config, cb}) {
           })
           .on('mouseout', () => {
             // => 鼠标离开关闭按钮上时 恢复按钮
-            d3.select(`.${d}CloseG`)
+            d3.select(`#${svgArgs.id} .${d}CloseG`)
               .attr({
                 opacity: 1,
                 transform: `translate(${chartW - 25}, ${5})`
@@ -1097,11 +1094,11 @@ export default function ({param, config, cb}) {
           })
         })
       } else {
-        d3.select(`.${d}G`)
+        d3.select(`#${svgArgs.id} .${d}G`)
           .attr('transform', `translate(0, ${kChartH + i * unitH})`)
 
         // 更新背景矩形位置
-        d3.select(`.${d}BG`)
+        d3.select(`#${svgArgs.id} .${d}BG`)
           .attr({
             x: 0,
             y: headH,
@@ -1110,25 +1107,25 @@ export default function ({param, config, cb}) {
             fill: colors[conf.theme].bgColor
           })
         // 更新头部宽度
-        d3.select(`.${d}HeadG`)
+        d3.select(`#${svgArgs.id} .${d}HeadG`)
           .select('.head')
           .attr('width', chartW)
         // 更新按钮位置
-        d3.select(`.${d}HeadG`)
+        d3.select(`#${svgArgs.id} .${d}HeadG`)
           .select(`.${d}SettingG`)
           .attr('transform', `translate(${chartW - 50},${5})`)
-        d3.select(`.${d}HeadG`)
+        d3.select(`#${svgArgs.id} .${d}HeadG`)
           .select(`.${d}CloseG`)
           .attr('transform', `translate(${chartW - 25},${5})`)
-        d3.select(`.${d}HeadG`)
+        d3.select(`#${svgArgs.id} .${d}HeadG`)
           .select(`.btnEventRSetting`)
           .attr('x', chartW - 50)
-        d3.select(`.${d}HeadG`)
+        d3.select(`#${svgArgs.id} .${d}HeadG`)
           .select(`.btnEventRClose`)
           .attr('x', chartW - 25)
 
         // => 更新事件接收容器位置
-        d3.select(`.${d}EventR`)
+        d3.select(`#${svgArgs.id} .${d}EventR`)
           .attr({
             width: chartW,
             height: unitH - headH,
@@ -1238,7 +1235,7 @@ export default function ({param, config, cb}) {
    * 滑动条拖动事件
    */
   function slideMove ({rectX, rectW}) {
-    d3.select('.slideR')
+    d3.select(`#${svgArgs.id} .slideR`)
       .attr({
         // rx: rectX > 0
         //   ? rectX + rectW < chartW
@@ -1253,21 +1250,21 @@ export default function ({param, config, cb}) {
         x: rectX,
         width: rectW
       })
-    d3.select('.leftHalfCircle')
+    d3.select(`#${svgArgs.id} .leftHalfCircle`)
       .attr({
         opacity: rectX <= 0 ? 0 : 1,
         transform: `translate(${rectX},${6})`
       })
-    d3.select('.rightHalfCircle')
+    d3.select(`#${svgArgs.id} .rightHalfCircle`)
       .attr({
         opacity: rectX + rectW >= chartW ? 0 : 1,
         transform: `translate(${rectX + rectW},${6})`
       })
-    d3.select('.slideLeftEventR')
+    d3.select(`#${svgArgs.id} .slideLeftEventR`)
       .attr({
         x: rectX
       })
-    d3.select('.slideRightEventR')
+    d3.select(`#${svgArgs.id} .slideRightEventR`)
       .attr({
         x: rectX + rectW
       })
@@ -1281,18 +1278,18 @@ export default function ({param, config, cb}) {
     store.Kdata = store.data.slice(startIndex, endIndex)
     // => 判断是否显示均线
     if (store.MAflag) {
-      d3.selectAll('.MApath').attr('opacity', 1)
+      d3.selectAll(`#${svgArgs.id} .MApath`).attr('opacity', 1)
       CaclMA()
     } else {
-      d3.selectAll('.MApath').attr('opacity', 0)
+      d3.selectAll(`#${svgArgs.id} .MApath`).attr('opacity', 0)
     }
 
     // =>  计算BOLL
     if (store.BOLLflag) {
-      d3.select('.BOLLchart').attr('opacity', 1)
+      d3.select(`#${svgArgs.id} .BOLLchart`).attr('opacity', 1)
       CaclBOLL()
     } else {
-      d3.select('.BOLLchart').attr('opacity', 0)
+      d3.select(`#${svgArgs.id} .BOLLchart`).attr('opacity', 0)
     }
 
     // => 计算其他指标
@@ -1448,7 +1445,7 @@ export default function ({param, config, cb}) {
    */
   function renderChart () {
     // => 更新底部滑动条网格与位置
-    df.drawSlideGrid(d3.select('.slideGridG'), svgArgs, slideTimeArr.length - 1, {
+    df.drawSlideGrid(d3.select(`#${svgArgs.id} .slideGridG`), svgArgs, slideTimeArr.length - 1, {
       width: chartW,
       height: 12,
       top: 0,
@@ -1463,7 +1460,7 @@ export default function ({param, config, cb}) {
       rectW: (endIndex - startIndex) * slideUnitW
     })
     // => 更新滑动条底部时间
-    df.drawTexts(d3.select('.slideGridG'), 'xSlideTime', slideTimeArr, {
+    df.drawTexts(d3.select(`#${svgArgs.id} .slideGridG`), 'xSlideTime', slideTimeArr, {
       class: 'xSlideTime',
       x: (d, i) => {
         return i * (chartW / (slideTimeArr.length - 1))
@@ -1484,14 +1481,14 @@ export default function ({param, config, cb}) {
       }
     }, (d, i) => {
       return df.formatTime(df.timerStyle.Ymd)(new Date(d))
-    })
+    }, svgArgs)
 
     // => 更新缩放比例
-    d3.select('.kEventR')
+    d3.select(`#${svgArgs.id} .kEventR`)
       .call(df.zoom([0.125, 3], zoom).scale(currentScale))
       .on('dblclick.zoom', null)
     // => 更新网格位置
-    df.drawGrid(d3.select('.KgridG'), svgArgs, khGridNums, 1, {
+    df.drawGrid(d3.select(`#${svgArgs.id} .KgridG`), svgArgs, khGridNums, 1, {
       width: chartW,
       height: kChartH - headH,
       top: 0,
@@ -1500,7 +1497,7 @@ export default function ({param, config, cb}) {
       right: 0,
       stroke: colors[conf.theme].gridGray
     })
-    df.drawkGrid(d3.select('.KgridG'), vGridNums, rectWidth, rectSpace, {
+    df.drawkGrid(d3.select(`#${svgArgs.id} .KgridG`), vGridNums, rectWidth, rectSpace, {
       width: chartW,
       height: kChartH - headH,
       top: 0,
@@ -1508,7 +1505,7 @@ export default function ({param, config, cb}) {
       left: 0,
       right: 0,
       stroke: colors[conf.theme].gridGray
-    })
+    }, svgArgs)
 
     /**
      * 获取K线中最大最小值及其位置
@@ -1597,7 +1594,7 @@ export default function ({param, config, cb}) {
 
     // => 绘制k线上引线
     df.drawkLeads({
-      G: d3.select('.Kchart'),
+      G: d3.select(`#${svgArgs.id} .Kchart`),
       data: store.Kdata,
       className: 'kLineUp',
       direction: 'up',
@@ -1605,11 +1602,12 @@ export default function ({param, config, cb}) {
       rectSpace: rectSpace,
       scaleY: scale.pricescale,
       red: colors[conf.theme].kRed,
-      green: colors[conf.theme].kGreen
+      green: colors[conf.theme].kGreen,
+      svgArgs: svgArgs
     })
     // => 绘制k线上引线
     df.drawkLeads({
-      G: d3.select('.Kchart'),
+      G: d3.select(`#${svgArgs.id} .Kchart`),
       data: store.Kdata,
       className: 'kLineDown',
       direction: 'down',
@@ -1617,22 +1615,24 @@ export default function ({param, config, cb}) {
       rectSpace: rectSpace,
       scaleY: scale.pricescale,
       red: colors[conf.theme].kRed,
-      green: colors[conf.theme].kGreen
+      green: colors[conf.theme].kGreen,
+      svgArgs: svgArgs
     })
     // => 绘制k线实体
     df.drawkRect({
-      G: d3.select('.Kchart'),
+      G: d3.select(`#${svgArgs.id} .Kchart`),
       data: store.Kdata,
       className: 'kRect',
       rectWidth: rectWidth,
       rectSpace: rectSpace,
       scaleY: scale.pricescale,
       red: colors[conf.theme].kRed,
-      green: colors[conf.theme].kGreen
+      green: colors[conf.theme].kGreen,
+      svgArgs: svgArgs
     })
     // => 绘制ma移动均线
     df.drawPolyline(
-      d3.select('.KMAchart'),
+      d3.select(`#${svgArgs.id} .KMAchart`),
       {
         class: 'MApath',
         fill: 'none',
@@ -1642,15 +1642,16 @@ export default function ({param, config, cb}) {
         }
       },
       store.MAdata,
-      line
+      line,
+      svgArgs
     )
     // => 绘制BOLL图形
     if (store.BOLLflag) {
-      renderBOLL(d3.select(`.BOLLchart`))
+      renderBOLL(d3.select(`#${svgArgs.id} .BOLLchart`))
     }
     let tIndex = Math.ceil(chartW / vGridNums / (rectWidth + rectSpace))
     // => 更新坐标轴
-    df.drawTexts(d3.select('.floorG'), 'xtime', timeArr, {
+    df.drawTexts(d3.select(`#${svgArgs.id} .floorG`), 'xtime', timeArr, {
       class: 'xtime',
       x: (d, i) => {
         return i !== 0
@@ -1690,7 +1691,7 @@ export default function ({param, config, cb}) {
           ? df.formatTime(df.timerStyle.YmdHM)(new Date(d))
           : df.formatTime(df.timerStyle.mdHM)(new Date(d))
       }
-    })
+    }, svgArgs)
 
     // => 更新k线区纵坐标轴
     let range = []
@@ -1728,11 +1729,11 @@ export default function ({param, config, cb}) {
     // => 按指标渲染图形
     store.lists.forEach((d, i) => {
       // => 缩放比例
-      d3.select(`.${d}EventR`)
+      d3.select(`#${svgArgs.id} .${d}EventR`)
         .call(df.zoom([0.125, 3], zoom).scale(currentScale))
         .on('dblclick.zoom', null)
       // => 更新网格位置
-      df.drawGrid(d3.select(`.${d}gridG`), svgArgs, ihGridNums, 1, {
+      df.drawGrid(d3.select(`#${svgArgs.id} .${d}gridG`), svgArgs, ihGridNums, 1, {
         width: chartW,
         height: unitH - headH > 1 ? unitH - headH : 1,
         top: 0,
@@ -1741,7 +1742,7 @@ export default function ({param, config, cb}) {
         right: 0,
         stroke: colors[conf.theme].gridGray
       })
-      df.drawkGrid(d3.select(`.${d}gridG`), vGridNums, rectWidth, rectSpace, {
+      df.drawkGrid(d3.select(`#${svgArgs.id} .${d}gridG`), vGridNums, rectWidth, rectSpace, {
         width: chartW,
         height: unitH - headH > 1 ? unitH - headH : 1,
         top: 0,
@@ -1749,15 +1750,15 @@ export default function ({param, config, cb}) {
         left: 0,
         right: 0,
         stroke: colors[conf.theme].gridGray
-      })
+      }, svgArgs)
       // => 渲染／更新图形
       switch (d) {
-        case 'VOL': renderVol(d3.select(`.${d}chart`), d); break
-        case 'MACD': renderMACD(d3.select(`.${d}chart`), d); break
-        case 'VMACD': renderVMACD(d3.select(`.${d}chart`), d); break
-        case 'RSI': renderRSI(d3.select(`.${d}chart`), d); break
-        case 'KDJ': renderKDJ(d3.select(`.${d}chart`), d); break
-        case 'WR': renderWR(d3.select(`.${d}chart`), d); break
+        case 'VOL': renderVol(d3.select(`#${svgArgs.id} .${d}chart`), d); break
+        case 'MACD': renderMACD(d3.select(`#${svgArgs.id} .${d}chart`), d); break
+        case 'VMACD': renderVMACD(d3.select(`#${svgArgs.id} .${d}chart`), d); break
+        case 'RSI': renderRSI(d3.select(`#${svgArgs.id} .${d}chart`), d); break
+        case 'KDJ': renderKDJ(d3.select(`#${svgArgs.id} .${d}chart`), d); break
+        case 'WR': renderWR(d3.select(`#${svgArgs.id} .${d}chart`), d); break
       }
     })
     // => 绘制成交量／成交额
@@ -1798,7 +1799,8 @@ export default function ({param, config, cb}) {
               return colors[conf.theme].kRed
             }
           }
-        }
+        },
+        svgArgs: svgArgs
       })
       // => 曲线生产器
       let line = df.kLine({
@@ -1808,7 +1810,7 @@ export default function ({param, config, cb}) {
       })
       // => 绘制成交量／成交额 移动均线
       df.drawPolyline(
-        d3.select(`.${d}MAchart`),
+        d3.select(`#${svgArgs.id} .${d}MAchart`),
         {
           class: 'VolumeMApath',
           fill: 'none',
@@ -1818,9 +1820,10 @@ export default function ({param, config, cb}) {
           }
         },
         store.MAVolumedata,
-        line
+        line,
+        svgArgs
       )
-      d3.selectAll('.VolumeMApath').attr({
+      d3.selectAll(`#${svgArgs.id} .VolumeMApath`).attr({
         'opacity': store.MAVOLflag ? 1 : 0
       })
 
@@ -1918,11 +1921,12 @@ export default function ({param, config, cb}) {
           } else {
             return colors[conf.theme].kGreen
           }
-        }
+        },
+        svgArgs: svgArgs
       })
       // => 绘制MACD DIF, DEA曲线
       df.drawPolyline(
-        d3.select(`.${d}MAchart`),
+        d3.select(`#${svgArgs.id} .${d}MAchart`),
         {
           class: `${type}path`,
           fill: 'none',
@@ -1932,7 +1936,8 @@ export default function ({param, config, cb}) {
           }
         },
         data.slice(1),
-        line
+        line,
+        svgArgs
       )
 
       // => 更新MACD 纵坐标轴
@@ -2052,7 +2057,8 @@ export default function ({param, config, cb}) {
           }
         },
         data,
-        line
+        line,
+        svgArgs
       )
     }
   }
@@ -2061,14 +2067,15 @@ export default function ({param, config, cb}) {
     if (conf.cursorInteract) {
       cursorG.attr('opacity', 1)
       floatBox.attr('opacity', 1)
-      d3.selectAll('.tipTexts').attr('opacity', 1)
+      d3.selectAll(`#${svgArgs.id} .tipTexts`).attr('opacity', 1)
     }
   }
   // => 隐藏光标
   function hideCursor () {
     cursorG.attr('opacity', 0)
     floatBox.attr('opacity', 0)
-    d3.selectAll('.tipTexts').attr('opacity', 0)
+      .attr('transform', `translate(${svgArgs.margin.left + lw},${-1000})`)
+    d3.selectAll(`#${svgArgs.id} .tipTexts`).attr('opacity', 0)
   }
   // => 光标移动时更新光标指示数据
   function cursorMove ({whichis, x, y, initY}) {
@@ -2201,24 +2208,29 @@ export default function ({param, config, cb}) {
       VMACD: [],
       WR: []
     }
+    if (!store.MAflag || !store.BOLLflag) {
+      // => MA/BOLL显示在同一位置最多只允许有一个显示
+      d3.selectAll(`#${svgArgs.id} .MATip`).attr('opacity', 0)
+      d3.selectAll(`#${svgArgs.id} .BOLLTip`).attr('opacity', 0)
+    }
     if (store.MAflag) {
       store.MAdata.forEach((d, i) => {
         tipData[`MA`].push(`MA${store.MAParam[i]}: ${df.formatVal(d[index].value)}`)
       })
-      // => MA/BOLL显示在同一位置只允许有一个显示
-      d3.selectAll('.MATip').attr('opacity', 1)
-      d3.selectAll('.BOLLTip').attr('opacity', 0)
-      updateHeadTips(d3.select('.KHeadG'), 'MATip', tipData[`MA`])
+      // => MA/BOLL显示在同一位置最多只允许有一个显示
+      d3.selectAll(`#${svgArgs.id} .MATip`).attr('opacity', 1)
+      d3.selectAll(`#${svgArgs.id} .BOLLTip`).attr('opacity', 0)
+      updateHeadTips(d3.select(`#${svgArgs.id} .KHeadG`), 'MATip', tipData[`MA`])
     }
     if (store.BOLLflag) {
       store.BOLLdata.forEach((d, i) => {
         let tip = ['BOLL', 'UB', 'LB']
         tipData[`BOLL`].push(`${tip[i]}: ${df.formatVal(d[index].value)}`)
       })
-      // => MA/BOLL显示在同一位置只允许有一个显示
-      d3.selectAll('.MATip').attr('opacity', 0)
-      d3.selectAll('.BOLLTip').attr('opacity', 1)
-      updateHeadTips(d3.select('.KHeadG'), `BOLLTip`, tipData[`BOLL`])
+      // => MA/BOLL显示在同一位置最多只允许有一个显示
+      d3.selectAll(`#${svgArgs.id} .MATip`).attr('opacity', 0)
+      d3.selectAll(`#${svgArgs.id} .BOLLTip`).attr('opacity', 1)
+      updateHeadTips(d3.select(`#${svgArgs.id} .KHeadG`), `BOLLTip`, tipData[`BOLL`])
     }
     store.lists.forEach((d, i) => {
       switch (d) {
@@ -2227,7 +2239,7 @@ export default function ({param, config, cb}) {
             store.MAVolumedata.forEach((data, j) => {
               tipData[`${d}`].push(`MA${store.MAVolumeParam[j]}: ${df.formatVal(data[index].value)}`)
             })
-            updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+            updateHeadTips(d3.select(`#${svgArgs.id} .${d}HeadG`), `${d}Tip`, tipData[`${d}`])
           }
           break
         case 'MACD':
@@ -2235,35 +2247,35 @@ export default function ({param, config, cb}) {
             let tip = ['MACD', 'DIF', 'DEA']
             tipData[`${d}`].push(`${tip[j]}: ${df.formatVal(data[index].value)}`)
           })
-          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`],
+          updateHeadTips(d3.select(`#${svgArgs.id} .${d}HeadG`), `${d}Tip`, tipData[`${d}`],
             textColor(store[`${d}data`][0][index].value))
           break
         case 'RSI':
           store[`${d}data`].forEach((data, j) => {
             tipData[`${d}`].push(`RSI${store.RSIParam[j]}: ${df.formatVal(data[index].value)}`)
           })
-          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+          updateHeadTips(d3.select(`#${svgArgs.id} .${d}HeadG`), `${d}Tip`, tipData[`${d}`])
           break
         case 'KDJ':
           store[`${d}data`].forEach((data, j) => {
             let tip = ['K', 'D', 'J']
             tipData[`${d}`].push(`${tip[j]}${store.KDJParam[j]}: ${df.formatVal(data[index].value)}`)
           })
-          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+          updateHeadTips(d3.select(`#${svgArgs.id} .${d}HeadG`), `${d}Tip`, tipData[`${d}`])
           break
         case 'VMACD':
           store[`${d}data`].forEach((data, j) => {
             let tip = ['VMACD', 'DIF', 'DEA']
             tipData[`${d}`].push(`${tip[j]}: ${df.formatVal(data[index].value)}`)
           })
-          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`],
+          updateHeadTips(d3.select(`#${svgArgs.id} .${d}HeadG`), `${d}Tip`, tipData[`${d}`],
             textColor(store[`${d}data`][0][index].value))
           break
         case 'WR':
           store[`${d}data`].forEach((data, j) => {
             tipData[`${d}`].push(`WR${store.WRParam[j]}: ${df.formatVal(data[index].value)}`)
           })
-          updateHeadTips(d3.select(`.${d}HeadG`), `${d}Tip`, tipData[`${d}`])
+          updateHeadTips(d3.select(`#${svgArgs.id} .${d}HeadG`), `${d}Tip`, tipData[`${d}`])
           break
         default: break
       }
@@ -2294,7 +2306,7 @@ export default function ({param, config, cb}) {
         }
       }, (d, i) => {
         return d
-      })
+      }, svgArgs)
     }
   }
 }
