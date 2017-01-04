@@ -25,12 +25,12 @@ export default {
     param.id = 'tsChartContainer' // 画布容器
     param.theme = 0 // 颜色主题
     // 000001.SS 000001.SZ 000625.SZ 002312.SZ
-    getTimeseriesService('000001.SS', 2260, data => {
-      this.filterData = data.slice(0, 0)
+    getTimeseriesService('000001.SS', 240, data => {
+      this.filterData = data.slice(0, 240)
       this.newData = data.slice(0)
       param.data = this.filterData // 绘图数据
       param.period = 1
-      param.priceMid = 3155 // 上一个交易日的收盘价
+      param.priceMid = 3130 // 上一个交易日的收盘价
       // param.priceMid = 9.4 // 上一个交易日的收盘价
       // param.priceMid = 15.74 // 上一个交易日的收盘价
       // param.priceMid = 9.94 // 上一个交易日的收盘价

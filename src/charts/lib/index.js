@@ -60,6 +60,7 @@ export function formatTime (style) {
 }
 
 // 每日交易时间
+export let tradeTimeSimple = ['09:30', '10:30', '11:30', '14:00', '15:00']
 export let tradeTime = ['09:30', '10:00', '10:30', '11:00', '11:30', '13:30', '14:00', '14:30', '15:00']
 
 // 返回距 1970 年 1 月 1 日之间的毫秒数

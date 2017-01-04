@@ -1155,6 +1155,17 @@ export default function ({param, config, cb}) {
     rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
     endIndex = store.data.length
     startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
+
+    cursorLineX.attr({
+      x1: 0,
+      x2: chartW
+    })
+    cursorLineY.attr({
+      y1: th + headH,
+      y2: th + chartH
+    })
+
+    // => 更新视图
     this.updateIndicators(param.lists)
   })
 

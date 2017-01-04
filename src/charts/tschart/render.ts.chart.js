@@ -7,48 +7,46 @@ import { colors } from '../lib/colors'
 import { average } from '../indicators/MA'
 
 /**
- * 数据仓库
- */
-let store = {
-  data: [],
-  maData: [],
-  chartData: [],
-  dataDict: {}
-}
-
-// 指标一区绘图数据
-let indicators1 = ['成交量', '成交额']
-let indicators1Index = 0
-let cursorFlag = false
-
-/**
  * 输出分时图对外接口
  */
 export default function (param, svgArgs, toggleChart) {
+  /**
+   * 数据仓库
+   */
+  let store = {
+    data: [],
+    maData: [],
+    chartData: [],
+    dataDict: {}
+  }
+
+  // 指标一区绘图数据
+  let indicators1 = ['成交量', '成交额']
+  let indicators1Index = 0
+  let cursorFlag = false
+
   // 将传入的数据缓存起来
-  store.data = param.data.concat([])
-  // df.log(svgArgs)
+  store.data = [...param.data]
+
   // 在绘图容器中添加 SVG
   let svg = df.createSVG(svgArgs)
-  // df.log('param')
-  // df.log(param)
+
   // 绘制背景矩形
   let bgG = svg.append('g')
     .attr('class', 'bgG')
-  let bgGRectArgs = {
-    'class': 'bgG',
+  df.drawRect(bgG, {
+    'class': 'bgR',
     'x': 0,
     'y': 0,
     'width': svgArgs.width,
     'height': svgArgs.height,
     'fill': colors[param.theme].bgColor
-  }
-  df.drawRect(bgG, bgGRectArgs)
+  })
 
   // 图形四周宽度
   let lw = 60
   let rw = 60
-  let th = 0
+  let th = 15
   let bh = 22
   let chartW = svgArgs.width - lw - rw
   let chartH = svgArgs.height - th - bh
@@ -122,8 +120,8 @@ export default function (param, svgArgs, toggleChart) {
   })
   let cursorY = df.drawLine(cursorG, {
     class: 'cursorY',
-    y1: th,
-    y2: th + chartH,
+    y1: 0,
+    y2: chartH,
     stroke: colors[param.theme].cursorBlue,
     'stroke-width': 1,
     'stroke-dasharray': '3, 3'
@@ -280,7 +278,7 @@ export default function (param, svgArgs, toggleChart) {
   let eventG = svg.append('g')
     .attr('class', 'eventG')
     .attr('transform', `translate(${svgArgs.margin.left + lw},${svgArgs.margin.top + th})`)
-  let eventGRectArgs = {
+  let eventGRect = df.drawRect(eventG, {
     'class': 'eventGRect',
     'x': 0,
     'y': 0,
@@ -288,8 +286,7 @@ export default function (param, svgArgs, toggleChart) {
     'height': chartH,
     'fill': 'none',
     'pointer-events': 'all'
-  }
-  let eventGRect = df.drawRect(eventG, eventGRectArgs)
+  })
 
   /**
    * socket 推送数据更新视图
@@ -343,7 +340,11 @@ export default function (param, svgArgs, toggleChart) {
     let priceMaxDiff = Math.max(Math.abs(priceMin - param.priceMid), Math.abs(priceMax - param.priceMid))
 
     // => 横坐标轴刻度
-    let scaleTimeArr = time.length > 1 ? [...time, ''] : df.tradeTime
+    let scaleTimeArr = time.length > 1
+      ? [...time, '']
+      : chartW > 450
+        ? df.tradeTime
+        : df.tradeTimeSimple
     let scaleWidth = []
     let unitW = chartW / (scaleTimeArr.length - 1)
     scaleTimeArr.forEach((d, i) => {
@@ -351,9 +352,10 @@ export default function (param, svgArgs, toggleChart) {
     })
 
     let scaleTime = df.ordinal(scaleTimeArr, scaleWidth)
+
     // 底部时间坐标轴
     timeAxisG.attr('class', 'x axis')
-      .attr('transform', `translate(${lw},${chartH})`)
+      .attr('transform', `translate(${lw},${chartH + th})`)
       .call(df.axis(scaleTime, 'bottom'))
       .selectAll('text')
       .attr('fill', colors[param.theme].axitTextGray)
@@ -377,6 +379,12 @@ export default function (param, svgArgs, toggleChart) {
     let chartH2GridNums = gridHNums / 2 - 1 // => 分时量&分时额垂直方向所占网格数量
     let chartH1 = unitGridH * chartH1GridNums
     let chartH2 = unitGridH * chartH2GridNums
+
+    // => 横纵坐标比例尺
+    let scaleX = df.linear(xTime, xWidth)
+    let scaleY1 = df.linear([param.priceMid - priceMaxDiff, param.priceMid + priceMaxDiff], [chartH1, 0])
+    let scaleY2
+    let scaleYPercent = df.linear([-(priceMaxDiff / param.priceMid * 100), priceMaxDiff / param.priceMid * 100], [chartH1, 0])
 
     // 生成纵坐标轴刻度
     let priceRange = []
@@ -407,7 +415,8 @@ export default function (param, svgArgs, toggleChart) {
           : colors[param.theme].axitTextGray
       })
       .attr('transform', (d, i) => {
-        return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
+        // return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
+        return `translate(0,0)`
       })
 
     let scalePricePercent = df.ordinal(pricePercentRange, scalePriceHeight)
@@ -423,14 +432,9 @@ export default function (param, svgArgs, toggleChart) {
           : colors[param.theme].axitTextGray
       })
       .attr('transform', (d, i) => {
-        return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
+        // return i === chartH1GridNums ? `translate(0,6)` : `translate(0,0)`
+        return `translate(0,0)`
       })
-
-    // => 横纵坐标比例尺
-    let scaleX = df.linear(xTime, xWidth)
-    let scaleY1 = df.linear([param.priceMid - priceMaxDiff, param.priceMid + priceMaxDiff], [chartH1, 0])
-    let scaleY2
-    let scaleYPercent = df.linear([-(priceMaxDiff / param.priceMid * 100), priceMaxDiff / param.priceMid * 100], [chartH1, 0])
 
     // => 更新呼吸灯位置与颜色
     latestLamp
@@ -552,7 +556,7 @@ export default function (param, svgArgs, toggleChart) {
 
     // 成交量、成交额切换
     toggleBtnG.attr('opacity', 1)
-      .attr('transform', `translate(${chartW + lw + 7.5},${chartH - chartH2})`)
+      .attr('transform', `translate(${chartW + lw + 7.5},${chartH - chartH2 + th})`)
     toggleBtnR.on('click', function () {
       d3.event.preventDefault()
       indicators1Index += 1
@@ -619,6 +623,37 @@ export default function (param, svgArgs, toggleChart) {
   }
   // 初始化视图
   this.render()
+
+  // 窗口大小变化时更新视图
+  window.addEventListener('resize', () => {
+    // => 获取svg尺寸
+    svgArgs = df.getSvgSize(param, {top: 0, right: 0, bottom: 0, left: 0})
+    chartW = svgArgs.width - lw - rw
+    chartH = svgArgs.height - th - bh
+    svg.attr({
+      width: svgArgs.width + svgArgs.margin.left + svgArgs.margin.right,
+      height: svgArgs.height + svgArgs.margin.top + svgArgs.margin.bottom
+    })
+    d3.select('.bgR')
+      .attr({
+        'width': svgArgs.width,
+        'height': svgArgs.height
+      })
+    eventGRect.attr({
+      width: chartW,
+      height: chartH
+    })
+    cursorX.attr({
+      x1: 0,
+      x2: chartW
+    })
+    cursorY.attr({
+      y1: 0,
+      y2: chartH
+    })
+    // => 更新视图
+    this.render()
+  })
 
   // 显示光标
   function showCousor () {
