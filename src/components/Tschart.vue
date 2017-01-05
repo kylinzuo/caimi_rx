@@ -26,8 +26,8 @@ export default {
     param.theme = 0 // 颜色主题
     // 000001.SS 000001.SZ 000625.SZ 002312.SZ
     getTimeseriesService('000001.SS', 240, data => {
-      this.filterData = data.slice(0, 240)
-      this.newData = data.slice(0)
+      this.filterData = data.slice(0, 200)
+      this.newData = data.slice(200)
       param.data = this.filterData // 绘图数据
       param.period = 1
       param.priceMid = 3130 // 上一个交易日的收盘价
@@ -43,7 +43,10 @@ export default {
     },
     refreshChart () {
       console.log('refreshChart')
-      this.filterData.push(this.newData.shift())
+      if (this.newData.length > 0) {
+        let newVal = this.newData.shift()
+        this.filterData.push(newVal)
+      }
       this.tsChart.refreshChart(this.filterData)
     }
   }

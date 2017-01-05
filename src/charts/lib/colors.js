@@ -12,9 +12,9 @@ colors[0] = {
   axisTextGreen: '#44BF3E', // 纵坐标轴刻度颜色
   axitTextGray: '#535353', // 纵坐标轴刻度颜色
   cursorBlue: '#307CD5', // 十字光标颜色
-  tipBlue: '#D4E8FF', // 十字光标提示框颜色
-  tipBorderBlue: '#7CB0EC', // 十字光标提示框边框颜色
-  tipTextBlue: '#146BCF', // 十字光标提示框字体颜色
+  tagBlue: '#D4E8FF', // 十字光标提示框颜色
+  tagBorderBlue: '#7CB0EC', // 十字光标提示框边框颜色
+  tagTextBlue: '#146BCF', // 十字光标提示框字体颜色
   lampBlue: '#439BFF', // 呼吸灯蓝色
   lampwickBlue: '#146BCF', // 呼吸灯芯蓝色
   lampRed: '#E74B47', // 呼吸灯红色
