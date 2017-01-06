@@ -840,12 +840,20 @@ export default function ({param, config, cb}) {
         return
       }
       // => 回调函数 通知弹出设置模态框
+      let args = []
+      let argsSetting = store.MAflag
+        ? Object.assign([], store[`MAParam`])
+        : Object.assign([], store[`BOLLParam`])
+      argsSetting.forEach((d, i) => {
+        args = [...args, {
+          value: d,
+          color: colors[conf.theme].curveColor[i]
+        }]
+      })
       cb({
         type: 'setting',
         data: store.MAflag ? 'MA' : 'BOLL',
-        args: store.MAflag
-          ? Object.assign([], store[`MAParam`])
-          : Object.assign([], store[`BOLLParam`])
+        args: [...args]
       })
     })
 
@@ -925,7 +933,12 @@ export default function ({param, config, cb}) {
             d: icons.settings,
             color: colors[conf.theme].settingBtnColor,
             scaleX: 0.15,
-            scaleY: 0.15
+            scaleY: 0.15,
+            opacity: d === 'VOL'
+              ? store.MAVOLflag
+                ? 1
+                : 0
+              : 1
           })
           // => 添加关闭按钮
           df.drawBtn({
@@ -950,6 +963,9 @@ export default function ({param, config, cb}) {
           })
           .attr('cursor', 'pointer')
           .on('mouseover', () => {
+            if (!store.MAVOLflag) {
+              return
+            }
             // => 鼠标放在设置按钮上时 放大按钮
             d3.select(`#${svgArgs.id} .${d}SettingG`)
               .attr({
@@ -963,6 +979,9 @@ export default function ({param, config, cb}) {
               })
           })
           .on('mouseout', () => {
+            if (!store.MAVOLflag) {
+              return
+            }
             // => 鼠标离开设置按钮上时 恢复按钮
             d3.select(`#${svgArgs.id} .${d}SettingG`)
               .attr({
@@ -976,15 +995,26 @@ export default function ({param, config, cb}) {
               })
           })
           .on('click', () => {
+            if (!store.MAVOLflag) {
+              return
+            }
             // => 回调函数 通知弹出设置模态框
+            let args = []
+            let argsSetting = d === `VOL`
+              ? indicators1ToggleArrType[toggleArr1index] === `volume`
+                ? Object.assign([], store[`MAVolumeParam`])
+                : Object.assign([], store[`MABalanceParam`])
+              : Object.assign([], store[`${d}Param`])
+            argsSetting.forEach((d, i) => {
+              args = [...args, {
+                value: d,
+                color: colors[conf.theme].curveColor[i]
+              }]
+            })
             cb({
               type: 'setting',
               data: d,
-              args: d === `VOL`
-                ? indicators1ToggleArrType[toggleArr1index] === `volume`
-                  ? Object.assign([], store[`MAVolumeParam`])
-                  : Object.assign([], store[`MABalanceParam`])
-                : Object.assign([], store[`${d}Param`])
+              args: [...args]
             })
           })
           // => 关闭指示框按钮
@@ -1122,6 +1152,13 @@ export default function ({param, config, cb}) {
         d3.select(`#${svgArgs.id} .${d}HeadG`)
           .select(`.${d}SettingG`)
           .attr('transform', `translate(${chartW - 50},${5})`)
+          .attr('opacity', () => {
+            return d === `VOL`
+              ? store.MAVOLflag
+                ? 1
+                : 0
+              : 1
+          })
         d3.select(`#${svgArgs.id} .${d}HeadG`)
           .select(`.${d}CloseG`)
           .attr('transform', `translate(${chartW - 25},${5})`)

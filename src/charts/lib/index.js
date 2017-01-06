@@ -480,10 +480,11 @@ export function drawBox ({G, gClassName, w, h, color}) {
  * k线各指标设置按钮与关闭按钮
  * G => 容器
  */
-export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scaleY}) {
+export function drawBtn ({G, className, offsetW, offsetH, d, color, scaleX, scaleY, opacity = 1}) {
   return G.append('g')
     .attr({
       class: className,
+      opacity: opacity,
       transform: `translate(${offsetW}, ${offsetH})`
     })
     .append('path')
