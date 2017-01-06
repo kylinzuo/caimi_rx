@@ -963,7 +963,7 @@ export default function ({param, config, cb}) {
           })
           .attr('cursor', 'pointer')
           .on('mouseover', () => {
-            if (!store.MAVOLflag) {
+            if (d === `VOL` && !store.MAVOLflag) {
               return
             }
             // => 鼠标放在设置按钮上时 放大按钮
@@ -979,7 +979,7 @@ export default function ({param, config, cb}) {
               })
           })
           .on('mouseout', () => {
-            if (!store.MAVOLflag) {
+            if (d === `VOL` && !store.MAVOLflag) {
               return
             }
             // => 鼠标离开设置按钮上时 恢复按钮
@@ -995,7 +995,7 @@ export default function ({param, config, cb}) {
               })
           })
           .on('click', () => {
-            if (!store.MAVOLflag) {
+            if (d === `VOL` && !store.MAVOLflag) {
               return
             }
             // => 回调函数 通知弹出设置模态框

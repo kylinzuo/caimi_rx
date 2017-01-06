@@ -91,6 +91,12 @@ export default {
     cb (data) {
       console.log(data)
       if (data.type === 'close') {
+        if (data.data === 'VOL') {
+          let index = this.lists.indexOf('MA(VOL)')
+          if (index > -1) {
+            this.lists.splice(index, 1)
+          }
+        }
         let index = this.lists.indexOf(data.data)
         this.lists.splice(index, 1)
       }
