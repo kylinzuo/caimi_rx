@@ -12,6 +12,7 @@ import { average } from '../indicators/MA'
 export default function (param, svgArgs, toggleChart) {
   // => database
   let store = {
+    priceMid: 0,
     data: [],
     maData: [],
     chartData: [],
@@ -30,6 +31,7 @@ export default function (param, svgArgs, toggleChart) {
 
   // => cache data
   store.data = [...param.data]
+  store.priceMid = param.priceMid || store.priceMid
 
   // => cache config
   conf.theme = param.theme !== undefined ? param.theme : conf.theme
@@ -370,7 +372,7 @@ export default function (param, svgArgs, toggleChart) {
     // => price min & max
     let priceMin = df.min(store.data, 'close')
     let priceMax = df.max(store.data, 'close')
-    let priceMaxDiff = Math.max(Math.abs(priceMin - param.priceMid), Math.abs(priceMax - param.priceMid))
+    let priceMaxDiff = Math.max(Math.abs(priceMin - store.priceMid), Math.abs(priceMax - store.priceMid))
 
     // => x axis
     let scaleTimeArr = time.length > 1
@@ -417,20 +419,20 @@ export default function (param, svgArgs, toggleChart) {
 
     // => x & y axis scale
     let scaleX = df.linear(xTime, xWidth)
-    let scaleY1 = df.linear([param.priceMid - priceMaxDiff, param.priceMid + priceMaxDiff], [chartH1, 0])
+    let scaleY1 = df.linear([store.priceMid - priceMaxDiff, store.priceMid + priceMaxDiff], [chartH1, 0])
     let scaleY2
-    let scaleYPercent = df.linear([-(priceMaxDiff / param.priceMid * 100), priceMaxDiff / param.priceMid * 100], [chartH1, 0])
+    let scaleYPercent = df.linear([-(priceMaxDiff / store.priceMid * 100), priceMaxDiff / store.priceMid * 100], [chartH1, 0])
 
     // y axis value
     let priceRange = []
     let pricePercentRange = []
     let scalePriceHeight = []
     let priceUnit = (2 * priceMaxDiff) / chartH1GridNums
-    let pricePercentUnit = priceMaxDiff / param.priceMid / chartH1GridNums * 2
+    let pricePercentUnit = priceMaxDiff / store.priceMid / chartH1GridNums * 2
     let chartH1Unit = chartH1 / chartH1GridNums
     df.getSerialArr(chartH1GridNums)
       .forEach((d, i) => {
-        priceRange = [...priceRange, param.priceMid - priceMaxDiff + i * priceUnit]
+        priceRange = [...priceRange, store.priceMid - priceMaxDiff + i * priceUnit]
         scalePriceHeight = [...scalePriceHeight, i * chartH1Unit]
         pricePercentRange = [...pricePercentRange, (i - chartH1GridNums / 2) * pricePercentUnit * 100]
       })
@@ -465,22 +467,22 @@ export default function (param, svgArgs, toggleChart) {
     // => update breath lamp location
     latestLamp
       .attr('cx', () => {
-        return scaleX(df.getMsec(param.data[param.data.length - 1].time))
+        return scaleX(df.getMsec(store.data[store.data.length - 1].time))
       })
       .attr('cy', () => {
-        return scaleY1(param.data[param.data.length - 1].close)
+        return scaleY1(store.data[store.data.length - 1].close)
       })
       .attr('fill', () => {
-        let lastIndex = param.data.length - 1
+        let lastIndex = store.data.length - 1
         if (lastIndex > 0) {
           if (store.data[lastIndex].time.indexOf('15:00:00') >= 0) {
             // 收盘后，价格收阳线的，呼吸灯为红色。价格收阴线的，呼吸灯为绿色。
-            return param.data[lastIndex].close - param.priceMid >= 0
+            return store.data[lastIndex].close - store.priceMid >= 0
               ? `url(#radialGradientRed)`
               : `url(#radialGradientGreen)`
           } else {
             // 现价高于/等于前一个点的，呼吸灯为红色。现价低于前一个点的，呼吸灯为绿色。
-            return param.data[lastIndex].close - param.data[lastIndex - 1].close >= 0
+            return store.data[lastIndex].close - store.data[lastIndex - 1].close >= 0
               ? `url(#radialGradientRed)`
               : `url(#radialGradientGreen)`
           }
@@ -490,21 +492,21 @@ export default function (param, svgArgs, toggleChart) {
       })
     latestLampwick
       .attr('cx', () => {
-        return scaleX(df.getMsec(param.data[param.data.length - 1].time))
+        return scaleX(df.getMsec(store.data[store.data.length - 1].time))
       })
       .attr('cy', () => {
-        return scaleY1(param.data[param.data.length - 1].close)
+        return scaleY1(store.data[store.data.length - 1].close)
       })
       .attr('fill', () => {
-        let lastIndex = param.data.length - 1
+        let lastIndex = store.data.length - 1
         if (lastIndex > 0) {
           if (store.data[lastIndex].time.indexOf('15:00:00') >= 0) {
             // 收盘后，价格收阳线的，呼吸灯为红色。价格收阴线的，呼吸灯为绿色。
-            return param.data[lastIndex].close - param.priceMid >= 0
+            return store.data[lastIndex].close - store.priceMid >= 0
               ? colors[conf.theme].lampRed
               : colors[conf.theme].lampGreen
           } else {
-            return param.data[lastIndex].close - param.data[lastIndex - 1].close >= 0
+            return store.data[lastIndex].close - store.data[lastIndex - 1].close >= 0
               ? colors[conf.theme].lampRed
               : colors[conf.theme].lampGreen
           }
@@ -805,8 +807,8 @@ export default function (param, svgArgs, toggleChart) {
       let flafloatValArr = [df.formatTime('%m/%d %H:%M')(tagTime),
         cursorPrice.close,
         df.formatVal(cursorMaPrice),
-        df.formatVal(cursorPriceClose !== 0 ? cursorPriceClose - param.priceMid : cursorPriceClose),
-        `${cursorPriceClose !== 0 ? df.formatVal((cursorPriceClose - param.priceMid) / param.priceMid * 100) : 0}%`,
+        df.formatVal(cursorPriceClose !== 0 ? cursorPriceClose - store.priceMid : cursorPriceClose),
+        `${cursorPriceClose !== 0 ? df.formatVal((cursorPriceClose - store.priceMid) / store.priceMid * 100) : 0}%`,
         df.formatVal(cursorPrice.volume || 0),
         df.formatVal(cursorPrice.balance || 0)
       ]
@@ -814,19 +816,19 @@ export default function (param, svgArgs, toggleChart) {
         floatVal[`index${i}`].text(d)
           .attr('fill', () => {
             if (i === 1) {
-              return cursorPriceClose - param.priceMid >= 0
+              return cursorPriceClose - store.priceMid >= 0
                 ? colors[conf.theme].floatTextRed
                 : colors[conf.theme].floatTextGreen
             } else if (i === 2) {
-              return cursorMaPrice - param.priceMid >= 0
+              return cursorMaPrice - store.priceMid >= 0
               ? colors[conf.theme].floatTextRed
               : colors[conf.theme].floatTextGreen
             } else if (i === 3) {
-              return cursorPriceClose - param.priceMid >= 0
+              return cursorPriceClose - store.priceMid >= 0
               ? colors[conf.theme].floatTextRed
               : colors[conf.theme].floatTextGreen
             } else if (i === 4) {
-              return cursorPriceClose - param.priceMid >= 0
+              return cursorPriceClose - store.priceMid >= 0
               ? colors[conf.theme].floatTextRed
               : colors[conf.theme].floatTextGreen
             } else {
