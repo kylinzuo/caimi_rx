@@ -445,7 +445,7 @@ export default function ({param, config, cb}) {
         x: 0,
         y: 0,
         width: chartW,
-        height: th,
+        height: bh,
         fill: colors[conf.theme].bgColor
       })
 
