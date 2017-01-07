@@ -608,20 +608,9 @@ export default function (param, svgArgs, toggleChart) {
       updateIndicators1()
     })
 
-    /**
-     * listen event
-     */
-    // => listen keydown event
-    d3.select(`body`).on('keydown', function () {
-      d3.event.preventDefault()
-      if (d3.event.keyCode === 38) {
-        toggleChart(d3.event.key)
-      } else if (d3.event.keyCode === 40) {
-        toggleChart(d3.event.key)
-      }
-    })
     // => prevent default dblclick zoom in
     svg.on('dblclick.zoom', null)
+
     //  => mouse event
     eventGRect
       .on('click', function () {
