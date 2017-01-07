@@ -226,7 +226,7 @@ export default function ({param, config, cb}) {
     .attr('marker-end', 'url(#arrow)')
 
   let maxPriceText = maxPriceG.append('text')
-    .attr('font-family', 'PingFangSC-Medium')
+    // .attr('font-family', 'PingFangSC-Medium')
     .attr('font-size', 12)
     .attr('stroke-width', 0)
     .attr('stroke', 'none')
@@ -244,7 +244,7 @@ export default function ({param, config, cb}) {
     .attr('marker-end', 'url(#arrow)')
 
   let minPriceText = minPriceG.append('text')
-    .attr('font-family', 'PingFangSC-Medium')
+    // .attr('font-family', 'PingFangSC-Medium')
     .attr('font-size', 12)
     .attr('stroke-width', 0)
     .attr('stroke', 'none')
@@ -290,7 +290,7 @@ export default function ({param, config, cb}) {
     fill: colors[conf.theme].tipBlue
   })
   let timeTipText = df.drawText(timeTipG, {
-    'font-family': 'PingFangSC-Regular',
+    // 'font-family': 'PingFangSC-Regular',
     'font-size': 12,
     dx: 38,
     dy: 14,
@@ -314,7 +314,7 @@ export default function ({param, config, cb}) {
     fill: colors[conf.theme].tipBlue
   })
   let priceTipText = df.drawText(priceTipG, {
-    'font-family': 'PingFangSC-Regular',
+    // 'font-family': 'PingFangSC-Regular',
     'font-size': 12,
     dx: lw,
     dy: 14,
@@ -344,7 +344,7 @@ export default function ({param, config, cb}) {
   let floatVal = {}
   floatConf.forEach((d, i) => {
     df.drawText(floatBox, {
-      'font-family': 'PingFangSC-Regular',
+      // 'font-family': 'PingFangSC-Regular',
       'font-size': 14,
       dx: 8,
       dy: 17 + 23 * i,
@@ -354,7 +354,7 @@ export default function ({param, config, cb}) {
       'text-anchor': 'start'
     }).text(d)
     floatVal[`index${i}`] = df.drawText(floatBox, {
-      'font-family': 'PingFangSC-Medium',
+      // 'font-family': 'PingFangSC-Medium',
       'font-size': 14,
       dx: 140 - 8,
       dy: 17 + 23 * i,
@@ -671,7 +671,7 @@ export default function ({param, config, cb}) {
       // => 添加股票名称
       df.drawText(KHeadG, {
         class: 'title',
-        'font-family': 'PingFangSC-Semibold',
+        // 'font-family': 'PingFangSC-Semibold',
         'font-size': 16,
         dx: -lw + 8,
         dy: 18.5,
@@ -909,7 +909,7 @@ export default function ({param, config, cb}) {
         })
         // => 添加指标区标题
         df.drawText(hg, {
-          'font-family': 'PingFangSC-Medium',
+          // 'font-family': 'PingFangSC-Medium',
           'font-size': 12,
           stroke: 'none',
           fill: colors[conf.theme].indexTextColor,
@@ -1528,7 +1528,7 @@ export default function ({param, config, cb}) {
         return i * (chartW / (slideTimeArr.length - 1))
       },
       y: 24,
-      'font-family': 'PingFangSC-Regular',
+      // 'font-family': 'PingFangSC-Regular',
       'font-size': 12,
       stroke: 'none',
       fill: colors[conf.theme].indexTextColor,
@@ -1723,7 +1723,7 @@ export default function ({param, config, cb}) {
           : 0
       },
       y: 12,
-      'font-family': 'PingFangSC-Regular',
+      // 'font-family': 'PingFangSC-Regular',
       'font-size': 12,
       stroke: 'none',
       fill: colors[conf.theme].indexTextColor,
@@ -1774,7 +1774,7 @@ export default function ({param, config, cb}) {
       )
       .selectAll('text')
       .attr({
-        'font-family': 'PingFangSC-Medium',
+        // 'font-family': 'PingFangSC-Medium',
         'font-size': 12,
         'text-anchor': 'end',
         stroke: 'none',
@@ -1907,7 +1907,7 @@ export default function ({param, config, cb}) {
         )
         .selectAll('text')
         .attr({
-          'font-family': 'PingFangSC-Medium',
+          // 'font-family': 'PingFangSC-Medium',
           'font-size': 12,
           'text-anchor': 'end',
           stroke: 'none',
@@ -2021,7 +2021,7 @@ export default function ({param, config, cb}) {
         )
         .selectAll('text')
         .attr({
-          'font-family': 'PingFangSC-Medium',
+          // 'font-family': 'PingFangSC-Medium',
           'font-size': 12,
           'text-anchor': 'end',
           stroke: 'none',
@@ -2087,7 +2087,7 @@ export default function ({param, config, cb}) {
           )
           .selectAll('text')
           .attr({
-            'font-family': 'PingFangSC-Medium',
+            // 'font-family': 'PingFangSC-Medium',
             'font-size': 12,
             'text-anchor': 'end',
             stroke: 'none',
@@ -2346,7 +2346,7 @@ export default function ({param, config, cb}) {
       let maxLength = d3.max(data, (d) => { return d.length })
       df.drawTexts(G, className, data, {
         class: `${className} tipTexts`,
-        'font-family': 'PingFangSC-Medium',
+        // 'font-family': 'PingFangSC-Medium',
         'font-size': 12,
         'text-anchor': 'start',
         stroke: 'none',

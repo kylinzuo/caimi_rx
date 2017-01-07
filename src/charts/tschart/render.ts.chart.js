@@ -164,7 +164,7 @@ export default function (param, svgArgs, toggleChart) {
     fill: colors[conf.theme].tagBlue
   })
   let timeTagText = df.drawText(timeTagG, {
-    'font-family': 'PingFangSC-Regular',
+    // 'font-family': 'PingFangSC-Regular',
     'font-size': 12,
     dx: 38,
     dy: 14,
@@ -189,7 +189,7 @@ export default function (param, svgArgs, toggleChart) {
     fill: colors[conf.theme].tagBlue
   })
   let priceTagText = df.drawText(priceTagG, {
-    'font-family': 'PingFangSC-Regular',
+    // 'font-family': 'PingFangSC-Regular',
     'font-size': 12,
     dx: lw - 5,
     dy: 14,
@@ -213,7 +213,7 @@ export default function (param, svgArgs, toggleChart) {
     fill: colors[conf.theme].tagBlue
   })
   let percentTagText = df.drawText(percentTagG, {
-    'font-family': 'PingFangSC-Regular',
+    // 'font-family': 'PingFangSC-Regular',
     'font-size': 12,
     dx: 5,
     dy: 14,
@@ -246,7 +246,7 @@ export default function (param, svgArgs, toggleChart) {
     fill: colors[conf.theme].tagBlue
   })
   let toggleTagText = df.drawText(toggleBtnG, {
-    'font-family': 'PingFangSC-Regular',
+    // 'font-family': 'PingFangSC-Regular',
     'font-size': 12,
     dx: 22.5,
     dy: 14,
@@ -279,7 +279,7 @@ export default function (param, svgArgs, toggleChart) {
   let floatVal = {}
   floatConf.forEach((d, i) => {
     df.drawText(floatBox, {
-      'font-family': 'PingFangSC-Regular',
+      // 'font-family': 'PingFangSC-Regular',
       'font-size': 14,
       dx: 8,
       dy: 17 + 23 * i,
@@ -289,7 +289,7 @@ export default function (param, svgArgs, toggleChart) {
       'text-anchor': 'start'
     }).text(d)
     floatVal[`index${i}`] = df.drawText(floatBox, {
-      'font-family': 'PingFangSC-Medium',
+      // 'font-family': 'PingFangSC-Medium',
       'font-size': 14,
       dx: 140 - 8,
       dy: 17 + 23 * i,
