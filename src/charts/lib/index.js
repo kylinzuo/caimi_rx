@@ -233,6 +233,7 @@ export function gaussianBlur (svg, id) {
  * 获取画布容器大小
  */
 export function getSvgSize (param, margin) {
+  console.log("%c index getSvgSize param:", "color:#09F", param);
   let width = document.getElementById(`${param.id}`).offsetWidth
   let height = document.getElementById(`${param.id}`).offsetHeight
 
@@ -783,13 +784,13 @@ export function drawkRect ({G, data, className, rectWidth, rectSpace, scaleY, re
 /**
  * k线曲线生产器
  */
-export function kLine ({rectWidth, rectSpace, scaleY}) {
+export function kLine ({rectWidth, rectSpace, scaleY, prop}) {
   return d3.svg.line()
     .x(function (d, i) {
       return rectSpace + rectWidth / 2 + i * (rectWidth + rectSpace)
     })
     .y(function (d) {
-      return scaleY(d.value)
+      return scaleY(d[prop])
     })
     .interpolate('linear')
 }

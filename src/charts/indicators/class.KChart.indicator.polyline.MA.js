@@ -1,3 +1,4 @@
+import {movingAverage as _average} from './MA'
 /**
  * MA配置参数
  */
@@ -43,23 +44,6 @@ function _caculator (rawData, type, K) {
     dataPoints.push(dataPoint)
   }
   return dataPoints
-}
-function _average (values, K) {
-  let averages = []
-  for (let i = 0; i < values.length; i++) {
-    let sum = 0
-    let start = i - K + 1
-    if (start < 0) {
-      start = 0
-    }
-    for (let j = start; j <= i; j++) {
-      sum += values[j]
-    }
-    let avg = sum / (i - start + 1)
-    avg = Math.round(avg * 10000) / 10000
-    averages.push(avg)
-  }
-  return averages
 }
 
 export default {

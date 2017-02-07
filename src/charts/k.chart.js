@@ -59,4 +59,10 @@ export default class RenderKChart {
   updateArgs (data) {
     this.kChart.updateArgs(data)
   }
+  /**
+   * 方向键更新十字光标与更新视图
+   */
+  keyboardEmit (action) {
+    this.kChart.keyboardEmit(action)
+  }
 }

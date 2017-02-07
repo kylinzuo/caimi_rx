@@ -67,11 +67,11 @@ export default function (param, svgArgs, toggleChart) {
     })
 
   // => 添加放射性渐变标签
-  df.radialGradient(svg, 'radialGradientRed', colors[conf.theme].lampRed, colors[conf.theme].lampWhite)
-  df.radialGradient(svg, 'radialGradientGreen', colors[conf.theme].lampGreen, colors[conf.theme].lampWhite)
+  df.radialGradient(svg, `${svgArgs.id}RadialGradientRed`, colors[conf.theme].lampRed, colors[conf.theme].lampWhite)
+  df.radialGradient(svg, `${svgArgs.id}radialGradientGreen`, colors[conf.theme].lampGreen, colors[conf.theme].lampWhite)
 
   // => 添加高斯模糊标签
-  df.gaussianBlur(svg, 'gaussianBlur')
+  df.gaussianBlur(svg, `${svgArgs.id}gaussianBlur`)
 
   // => latest price breath lamp
   let lampG = svg.append('g')
@@ -84,7 +84,7 @@ export default function (param, svgArgs, toggleChart) {
     cx: -100,
     cy: -100,
     r: 5,
-    filter: 'url(#gaussianBlur)'
+    filter: `url(#${svgArgs.id}gaussianBlur)`
   })
   let latestLampwick = df.drawBreathLamp(lampG, {
     class: 'lampwick',
@@ -224,7 +224,7 @@ export default function (param, svgArgs, toggleChart) {
   // => linear gradient
   let startColor = `rgba(20,107,206,0.3)`
   let endColor = `rgba(255,255,255,0.3)`
-  let tsLinearGradient = df.linearGradient(svg, 'tsLinearColor', startColor, endColor)
+  let tsLinearGradient = df.linearGradient(svg, `${svgArgs.id}tsLinearColor`, startColor, endColor)
 
   // => volume & balance toggle button container
   let toggleBtnG = svg.append('g')
@@ -478,16 +478,16 @@ export default function (param, svgArgs, toggleChart) {
           if (store.data[lastIndex].time.indexOf('15:00:00') >= 0) {
             // 收盘后，价格收阳线的，呼吸灯为红色。价格收阴线的，呼吸灯为绿色。
             return store.data[lastIndex].close - store.priceMid >= 0
-              ? `url(#radialGradientRed)`
-              : `url(#radialGradientGreen)`
+              ? `url(#${svgArgs.id}RadialGradientRed)`
+              : `url(#${svgArgs.id}radialGradientGreen)`
           } else {
             // 现价高于/等于前一个点的，呼吸灯为红色。现价低于前一个点的，呼吸灯为绿色。
             return store.data[lastIndex].close - store.data[lastIndex - 1].close >= 0
-              ? `url(#radialGradientRed)`
-              : `url(#radialGradientGreen)`
+              ? `url(#${svgArgs.id}RadialGradientRed)`
+              : `url(#${svgArgs.id}radialGradientGreen)`
           }
         } else {
-          return `url(#radialGradientRed)`
+          return `url(#${svgArgs.id}RadialGradientRed)`
         }
       })
     latestLampwick

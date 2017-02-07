@@ -89,6 +89,13 @@ export default function ({param, config, cb}) {
   // => 坐标轴dom数据, 坐标轴实时更新需要该数据
   let axis = {}
 
+  // => 缓存最新十字光标线坐标
+  let cursorCo = {
+    index: -1,
+    x: -1,
+    y: -1
+  }
+
   // => 成交量／成交额 可切换指标
   let indicators1ToggleArr = ['成交量', '成交额']
   let indicators1ToggleArrType = ['volume', 'balance']
@@ -160,7 +167,7 @@ export default function ({param, config, cb}) {
   let chartW = svgArgs.width - lw - rw
   let chartH = svgArgs.height - th - bh
 
-  let rectWidth = 8
+  let rectWidth = conf.mode !== 1 ? 8 : 4
   let rectNum = Math.floor(chartW / (2 + rectWidth))
   let rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
 
@@ -197,7 +204,7 @@ export default function ({param, config, cb}) {
   let defs = arrowG.append('defs')
 
   let arrowMarker = defs.append('marker')
-    .attr('id', 'arrow')
+    .attr('id', `${svgArgs.id}Arrow`)
     .attr('markerUnits', 'strokeWidth')
     .attr('markerWidth', '12')
     .attr('markerHeight', '12')
@@ -223,7 +230,7 @@ export default function ({param, config, cb}) {
     .attr('y2', 4)
     .attr('stroke', colors[conf.theme].arrowColor)
     .attr('stroke-width', 1)
-    .attr('marker-end', 'url(#arrow)')
+    .attr('marker-end', `url(#${svgArgs.id}Arrow)`)
 
   let maxPriceText = maxPriceG.append('text')
     // .attr('font-family', 'PingFangSC-Medium')
@@ -241,7 +248,7 @@ export default function ({param, config, cb}) {
     .attr('y2', -2)
     .attr('stroke', colors[conf.theme].arrowColor)
     .attr('stroke-width', 1)
-    .attr('marker-end', 'url(#arrow)')
+    .attr('marker-end', `url(#${svgArgs.id}Arrow)`)
 
   let minPriceText = minPriceG.append('text')
     // .attr('font-family', 'PingFangSC-Medium')
@@ -909,6 +916,7 @@ export default function ({param, config, cb}) {
         })
         // => 添加指标区标题
         df.drawText(hg, {
+          class: `${d}Title`,
           // 'font-family': 'PingFangSC-Medium',
           'font-size': 12,
           stroke: 'none',
@@ -1223,6 +1231,129 @@ export default function ({param, config, cb}) {
     dataFilter()
   }
 
+  // => listen keyboard event
+  this.keyboardEmit = function (action) {
+    switch (action.type) {
+      case `up` : keyUp() ; break
+      case `down` : keyDown() ; break
+      case `left` : keyLeft() ; break
+      case `right` : keyRight() ; break
+      default: break
+    }
+  }
+
+  // d3.select('body').on('keydown', function () {
+  //   switch (d3.event.keyCode) {
+  //     case 38: keyboardEmit({type: `up`}); break
+  //     case 40: keyboardEmit({type: `down`}); break
+  //     case 37: keyboardEmit({type: `left`}); break
+  //     case 39: keyboardEmit({type: `right`}); break
+  //     default: break
+  //   }
+  // })
+
+  // => 方向键放大
+  function keyUp () {
+    if (rectWidth < 24) {
+      rectWidth = rectWidth + 1 <= 24 ? rectWidth + 1 : 24
+    } else {
+      rectWidth = 24
+      return
+    }
+    currentScale = rectWidth / 8
+    keyZoom()
+  }
+
+  // => 方向键缩小
+  function keyDown () {
+    if (rectWidth > 1) {
+      rectWidth = rectWidth - 1 >= 1 ? rectWidth - 1 : 1
+    } else {
+      rectWidth = 1
+      return
+    }
+    currentScale = rectWidth / 8
+    keyZoom()
+  }
+
+  function keyLeft () {
+    let x = cursorCo.x !== -1
+      ? cursorCo.x > rectWidth + rectSpace
+        ? cursorCo.x - (rectWidth + rectSpace)
+        : rectWidth / 2 + rectSpace
+      : chartW
+    let index = cursorCo.index !== -1
+      ? cursorCo.index > 0
+        ? cursorCo.index - 1
+        : 0
+      : store.Kdata.length - 1
+    let y = scale.pricescale(store.Kdata[index].close)
+    showCursor ()
+    if (cursorCo.x < (rectWidth + rectSpace)) {
+      startIndex = startIndex - 1 >= 0 ? startIndex - 1 : 0
+      endIndex = startIndex + rectNum < store.data.length ? startIndex + rectNum : store.data.length
+      if (startIndex === 0) {
+        df.log('最早的k线了！')
+      }
+      dataFilter()
+    }
+    cursorMove({
+      whichis: 'price',
+      x,
+      y,
+      initY: y
+    })
+  }
+
+  function keyRight () {
+    let x = cursorCo.x !== -1
+      ? cursorCo.x < chartW - (rectWidth + rectSpace)
+        ? cursorCo.x + (rectWidth + rectSpace)
+        : chartW - rectWidth / 2
+      : 0
+    let index = cursorCo.index !== -1
+      ? cursorCo.index < store.Kdata.length - 1
+        ? cursorCo.index + 1
+        : store.Kdata.length - 1
+      : 0
+    let y = scale.pricescale(store.Kdata[index].close)
+    showCursor ()
+    // => conf.mode === 1 九宫格模式允许右移
+    if ((cursorCo.x > chartW - (rectWidth + rectSpace)) || conf.mode === 1) {
+      endIndex = endIndex + 1 < store.data.length ? endIndex + 1 : store.data.length
+      startIndex = (endIndex - rectNum) >= 0 ? endIndex - rectNum : 0
+      if (endIndex >= store.data.length) {
+        df.log('最新k线了！')
+      }
+      dataFilter()
+    }
+    cursorMove({
+      whichis: 'price',
+      x,
+      y,
+      initY: y
+    })
+  }
+
+  function keyZoom () {
+    rectNum = Math.floor(chartW / (2 + rectWidth))
+    rectSpace = 2 + (chartW - (2 + rectWidth) * rectNum) / rectNum
+    startIndex = startIndex >= 0
+      ? (endIndex - rectNum) >= 0
+        ? endIndex - rectNum
+        : 0
+      : 0
+    endIndex = startIndex === 0
+      ? endIndex = startIndex + rectNum < store.data.length
+        ? startIndex + rectNum
+        : store.data.length
+      : endIndex <= store.data.length
+        ? endIndex
+        : store.data.length
+    // => 处理数据绘图
+    dataFilter()
+  }
+
   /**
    * 缩放事件处理函数
    */
@@ -1346,7 +1477,7 @@ export default function ({param, config, cb}) {
       d3.selectAll(`#${svgArgs.id} .MApath`).attr('opacity', 0)
     }
 
-    // =>  计算BOLL
+    // => 是否显示BOLL
     if (store.BOLLflag) {
       d3.select(`#${svgArgs.id} .BOLLchart`).attr('opacity', 1)
       CaclBOLL()
@@ -1622,9 +1753,7 @@ export default function ({param, config, cb}) {
       })
 
     // => k线横坐标比例尺
-    scale.kchartX = d3.scale.linear()
-      .domain([0, rectNum])
-      .range([0, chartW])
+    scale.kchartX = df.linear([0, rectNum], [0, chartW])
     // => k线比例尺
     let minPrice = df.min(store.Kdata, 'low')
     let maxPrice = df.max(store.Kdata, 'high')
@@ -1649,10 +1778,18 @@ export default function ({param, config, cb}) {
     // }
     scale.pricescale = df.linear([minPrice, maxPrice], [kChartH - headH - 11, 11])
     let line = df.kLine({
-      rectWidth: rectWidth,
-      rectSpace: rectSpace,
-      scaleY: scale.pricescale
+      rectWidth,
+      rectSpace,
+      scaleY: scale.pricescale,
+      prop: `value`
     })
+    // => 收盘价曲线生成器
+    // let closeLine = df.kLine({
+    //   rectWidth,
+    //   rectSpace,
+    //   scaleY: scale.pricescale,
+    //   prop: `close`
+    // })
 
     // => 绘制k线上引线
     df.drawkLeads({
@@ -1707,6 +1844,21 @@ export default function ({param, config, cb}) {
       line,
       svgArgs
     )
+    // => 收盘价曲线
+    // df.drawPolyline(
+    //   d3.select(`#${svgArgs.id} .KMAchart`),
+    //   {
+    //     class: 'closePath',
+    //     fill: 'none',
+    //     'stroke-width': 1,
+    //     'stroke': (d, i) => {
+    //       return `red`
+    //     }
+    //   },
+    //   [store.Kdata],
+    //   closeLine,
+    //   svgArgs
+    // )
     // => 绘制BOLL图形
     if (store.BOLLflag) {
       renderBOLL(d3.select(`#${svgArgs.id} .BOLLchart`))
@@ -1813,6 +1965,14 @@ export default function ({param, config, cb}) {
         right: 0,
         stroke: colors[conf.theme].gridGray
       }, svgArgs)
+      // => 更新指标区标题
+      d3.select(`#${svgArgs.id} .${d}HeadG`)
+        .select(`.${d}Title`)
+        .text(() => {
+          return d !== 'VOL'
+            ? `${d}(${store[`${d}Param`]})`
+            : indicators1ToggleArr[toggleArr1index]
+        })
       // => 渲染／更新图形
       switch (d) {
         case 'VOL': renderVol(d3.select(`#${svgArgs.id} .${d}chart`), d); break
@@ -1866,9 +2026,10 @@ export default function ({param, config, cb}) {
       })
       // => 曲线生产器
       let line = df.kLine({
-        rectWidth: rectWidth,
-        rectSpace: rectSpace,
-        scaleY: scale.VOLPathscale
+        rectWidth,
+        rectSpace,
+        scaleY: scale.VOLPathscale,
+        prop: `value`
       })
       // => 绘制成交量／成交额 移动均线
       df.drawPolyline(
@@ -1950,9 +2111,10 @@ export default function ({param, config, cb}) {
       scale[`${type}Pathscale`] = df.linear([-max, max], [maxH - 5, 5])
       // => 曲线生成器
       let line = df.kLine({
-        rectWidth: rectWidth,
-        rectSpace: rectSpace,
-        scaleY: scale[`${type}Pathscale`]
+        rectWidth,
+        rectSpace,
+        scaleY: scale[`${type}Pathscale`],
+        prop: `value`
       })
       // => MACD柱状图
       df.drawRectChart({
@@ -2103,9 +2265,10 @@ export default function ({param, config, cb}) {
       }
       // => 曲线生成器
       let line = df.kLine({
-        rectWidth: rectWidth,
-        rectSpace: rectSpace,
-        scaleY: scale[scaleProp]
+        rectWidth,
+        rectSpace,
+        scaleY: scale[scaleProp],
+        prop: `value`
       })
       // => 绘制MACD DIF, DEA曲线
       df.drawPolyline(
@@ -2151,6 +2314,9 @@ export default function ({param, config, cb}) {
       ? invertX
       : store.Kdata.length - 1
     let cursorX = rectSpace + rectWidth / 2 + index * (rectWidth + rectSpace)
+    // => 缓存最新十字光标线位置
+    cursorCo.index = index
+    cursorCo.x = cursorX
 
     // => 获取光标处上一根k线收盘价
     let preClose = index + startIndex > 0
